@@ -45,8 +45,8 @@ object of options. The options are:
 
 * **to**: Name of the template.
 
-* **as**: Optional name of the path helper. Path helpers will have the form
-  `<as value>Path` and take a context parameter or use `this` by default. By
+* **as**: Optional name of the path helper. Page helpers will have the form
+  `<as value>Page` and take a context parameter or use `this` by default. By
   default the path helper will be named the same as the `to` property or
   template name.
 
@@ -82,7 +82,7 @@ function authorize(context) {
   // do some authorization
   if (notAuthorized()) {
     context.stop();
-    Meteor.go(Meteor.pages.unauthorizedPath());
+    Meteor.go(Meteor.pages.unauthorizedPage());
   }
 }
 
@@ -116,7 +116,7 @@ You can set the `layout` property to `false` or to another layout. By default it
 will use `layout` if such a template is defined.
 ```
 
-###Path Helpers
+###Page Helpers
 For each route, a global Handlebars helper is created. Also, a method is created
 in the Meteor.pages namespace. This let's you specify a path in your html
 without always having to handle click events just to navigate around the app.
@@ -135,22 +135,22 @@ var context = {
 };
 ```
 
-You could call the `postShowPath` helper in handlebars or in a function like
+You could call the `postShowPage` helper in handlebars or in a function like
 this:
 
 ```javascript
 function someMethod() {
-  var path = Meteor.pages.showPostPath(context);
+  var path = Meteor.pages.showPostPage(context);
 }
 ```
 
 The context is by default set to `this`...
 ```html
-<a href="{{showPostPath}}">Click Me</a>
+<a href="{{showPostPage}}">Click Me</a>
 ```
 
 or if you have a `post` helper method...
 
 ```html
-<a href="{{showPostPath post}}">Click Me</a>
+<a href="{{showPostPage post}}">Click Me</a>
 ```

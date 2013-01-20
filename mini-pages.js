@@ -228,17 +228,17 @@
 
     as: function (pathName) {
       var self = this;
-      var pathHelper = pathName + 'Path';
+      var pathHelper = pathName + 'Page';
       self.as = pathName;
 
-      if (!RouteMap.onAttachPathHelper)
-        throw new Error('onAttachPathHelper not found in helpers file');
+      if (!RouteMap.onAttachPageHelper)
+        throw new Error('onAttachPageHelper not found in helpers file');
 
-      RouteMap.onAttachPathHelper(pathHelper, self);
+      RouteMap.onAttachPageHelper(pathHelper, self);
 
-      /* for use with Meteor.go(Meteor.paths.somePath({})) */
-      if (!Meteor.paths[pathHelper]) {
-        Meteor.paths[pathHelper] = function (context) {
+      /* for use with Meteor.go(Meteor.pages.somePage({})) */
+      if (!Meteor.pages[pathHelper]) {
+        Meteor.pages[pathHelper] = function (context) {
           context = context || this;
           return self.pathWithContext(context);
         }
@@ -312,7 +312,6 @@
     }
   };
 
-  Meteor.paths = Meteor.paths || {};
   Meteor.RouteMap = RouteMap;
   Meteor.router = new Meteor.RouteMap;
   Meteor.pages = _.bind(Meteor.router.draw, Meteor.router);

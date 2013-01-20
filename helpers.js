@@ -32,10 +32,10 @@
       });
     }
 
-    Meteor.RouteMap.onAttachPathHelper = function (pathName, route) {
-      if (Handlebars._default_helpers[pathName]) return;
+    Meteor.RouteMap.onAttachPageHelper = function (pageName, route) {
+      if (Handlebars._default_helpers[pageName]) return;
 
-      Handlebars.registerHelper(pathName, function (context, options) {
+      Handlebars.registerHelper(pageName, function (context, options) {
         if (arguments.length === 1) {
           /* no context parameter was passed to helper */
           return route.pathWithContext(this);

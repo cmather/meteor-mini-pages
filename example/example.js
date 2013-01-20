@@ -35,7 +35,7 @@ if (Meteor.isClient) {
     context.stop();
 
     /* then you can redirect with the 'go' method */
-    Meteor.go(Meteor.paths.unauthorizedPath());
+    Meteor.go(Meteor.pages.unauthorizedPage());
   }
 
   Meteor.pages({

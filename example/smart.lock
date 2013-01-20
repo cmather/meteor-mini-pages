@@ -6,13 +6,13 @@
   },
   "dependencies": {
     "basePackages": {
-      "mini-pages": {
-        "path": "/Users/cmather/code/meteor-mini-pages"
-      }
+      "mini-pages": {}
     },
     "packages": {
       "mini-pages": {
-        "path": "/Users/cmather/code/meteor-mini-pages"
+        "git": "https://github.com/cmather/meteor-mini-pages.git",
+        "tag": "v0.1.1",
+        "commit": "30510b6110040ba1f2fa31c3d49e4c48ed180726"
       },
       "page-js": {
         "git": "https://github.com/tmeasday/meteor-page-js.git",

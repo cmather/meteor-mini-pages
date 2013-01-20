@@ -9,16 +9,16 @@
 <template name="layout">
   <div class="navbar">
     <div class="navbar-inner">
-      <a href="{{rootPath}}" class="brand">Home</a>
+      <a href="{{rootPage}}" class="brand">Home</a>
 
       <ul class="nav">
         <li class="{{navClassFor 'posts'}}">
-          <a href="{{postIndexPath}}">
+          <a href="{{postIndexPage}}">
             Posts
           </a>
         </li>
         <li class="{{navClassFor 'secret'}}">
-          <a href="{{secretPath}}">
+          <a href="{{secretPage}}">
             Secret
           </a>
         </li>
@@ -51,9 +51,9 @@
    <tr>
      <td>{{title}}</td>
      <td>
-       <a href="{{postShowPath}}">Show</a>
+       <a href="{{postShowPage}}">Show</a>
        &nbsp;
-       <a href="{{postEditPath}}">Edit</a>
+       <a href="{{postEditPage}}">Edit</a>
      </td>
    </tr>
 </template>
@@ -63,8 +63,8 @@
     <h1>Edit Post - {{title}}</h1>
 
     <ul class="links">
-      <li><a href="{{postIndexPath}}">Back to All</a></li>
-      <li><a href="{{postShowPath}}">Show</a></li>
+      <li><a href="{{postIndexPage}}">Back to All</a></li>
+      <li><a href="{{postShowPage}}">Show</a></li>
     </ul>
   {{/with}}
 </template>
@@ -74,8 +74,8 @@
     <h1>Post Show - {{title}}</h1>
 
     <ul class="links">
-      <li><a href="{{postIndexPath}}">Back to All</a></li>
-      <li><a href="{{postEditPath}}">Edit</a></li>
+      <li><a href="{{postIndexPage}}">Back to All</a></li>
+      <li><a href="{{postEditPage}}">Edit</a></li>
     </ul>
   {{/with}}
 </template>
