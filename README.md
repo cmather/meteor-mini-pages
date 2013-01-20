@@ -10,7 +10,7 @@ mini-pages
 ##Usage
 
 This package provides simple routing and navigation for your Meteor app. You can
-check out a full example in the examples directory.
+check out a full example in the examples directory. It was inspired heavily by the Meteor.Router project: git://github.com/tmeasday/meteor-router.git.
 
 The package provides a few features:
 
