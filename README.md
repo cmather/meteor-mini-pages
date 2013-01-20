@@ -43,14 +43,14 @@ if (Meteor.isClient) {
 You can just specify the name of the template as a string or you can pass an
 object of options. The options are:
 
-* **to:**: Name of the template.
+* **to**: Name of the template.
 
-* **as:**: Optional name of the path helper. Path helpers will have the form
+* **as**: Optional name of the path helper. Path helpers will have the form
   `postFormPath` and take a context parameter or use `this` by default. By
   default the path helper will be named the same as the `to` property or
   template name.
 
-* **nav:**: Optional `Session` variable to set for use with navigation bars.
+* **nav**: Optional `Session` variable to set for use with navigation bars.
 
 * **layout:**: Optional template to use as a layout. Defaults to `layout`
   template if it's defined. You can also set this to `false` to not use a
