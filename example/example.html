@@ -1,0 +1,105 @@
+<head>
+  <title>Meteor MiniPages</title>
+</head>
+
+<body>
+  {{page}}
+</body>
+
+<template name="layout">
+  <div class="navbar">
+    <div class="navbar-inner">
+      <a href="{{rootPath}}" class="brand">Home</a>
+
+      <ul class="nav">
+        <li class="{{navClassFor 'posts'}}">
+          <a href="{{postIndexPath}}">
+            Posts
+          </a>
+        </li>
+        <li class="{{navClassFor 'secret'}}">
+          <a href="{{secretPath}}">
+            Secret
+          </a>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="container">
+    {{yield}}
+  </div>
+</template>
+
+<template name="postIndex">
+  <h1>Post Index</h1>
+
+  <table class="table">
+    <thead>
+      <th>Title</th>
+      <th></th>
+    </thead>
+    <tbody>
+      {{#each posts}}
+        {{> postRow}}
+      {{/each}}
+    </tbody>
+  </table>
+</template>
+
+<template name="postRow">
+   <tr>
+     <td>{{title}}</td>
+     <td>
+       <a href="{{postShowPath}}">Show</a>
+       &nbsp;
+       <a href="{{postEditPath}}">Edit</a>
+     </td>
+   </tr>
+</template>
+
+<template name="postForm">
+  {{#with post}}
+    <h1>Edit Post - {{title}}</h1>
+
+    <ul class="links">
+      <li><a href="{{postIndexPath}}">Back to All</a></li>
+      <li><a href="{{postShowPath}}">Show</a></li>
+    </ul>
+  {{/with}}
+</template>
+
+<template name="postShow">
+  {{#with post}}
+    <h1>Post Show - {{title}}</h1>
+
+    <ul class="links">
+      <li><a href="{{postIndexPath}}">Back to All</a></li>
+      <li><a href="{{postEditPath}}">Edit</a></li>
+    </ul>
+  {{/with}}
+</template>
+
+<template name="secret">
+  Shouldn't be able to get here  
+</template>
+
+<template name="unauthorized">
+  <div class="alert alert-error alert-block">
+    <p>
+      Sorry, you're not authorized to see this page!
+    </p>
+  </div>
+</template>
+
+<template name="notFoundLayout">
+  <h1>Sorry, the page you're looking for couldn't be found!</h1>
+  {{yield}}
+</template>
+
+<template name="notFound">
+  Yielding to the child not found template.
+</template>
+
+
+
