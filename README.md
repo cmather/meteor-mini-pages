@@ -38,6 +38,23 @@ if (Meteor.isClient) {
 }
 ```
 
+```html
+<head>
+  <title>Some Routing!</title>
+</head>
+
+<body>
+  {{page}}
+</body>
+
+<template name="layout">
+  Some layout stuff
+  {{yield}}
+</template>
+
+<!-- your other templates down here -->
+```
+
 ####Route Options
 
 You can just specify the name of the template as a string or you can pass an
