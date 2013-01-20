@@ -4,8 +4,6 @@
     "branch": "master"
   },
   "packages": {
-    "mini-pages": {
-      "path" : "/Users/cmather/code/meteor-mini-pages" 
-    }
+    "mini-pages": {}
   }
 }
