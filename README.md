@@ -52,7 +52,7 @@ object of options. The options are:
 
 * **nav**: Optional `Session` variable to set for use with navigation bars.
 
-* **layout:**: Optional template to use as a layout. Defaults to `layout`
+* **layout**: Optional template to use as a layout. Defaults to `layout`
   template if it's defined. You can also set this to `false` to not use a
   layout.
 
@@ -62,7 +62,7 @@ object of options. The options are:
 ###Creating Before Filters
 
 Before filters are called before the template is loaded. You can use these to
-perform authorization, or load a document into Session.
+perform authorization, or load a document into Session for example.
 
 Before filters take one parameter: `context`. This object has a `parameters`
 property that can be used to get route params and a `stop()` method that can be
@@ -82,7 +82,7 @@ function authorize(context) {
   // do some authorization
   if (notAuthorized()) {
     context.stop();
-    Meteor.go(Meteor.paths.unauthorizedPath());
+    Meteor.go(Meteor.pages.unauthorizedPath());
   }
 }
 
@@ -118,7 +118,7 @@ will use `layout` if such a template is defined.
 
 ###Path Helpers
 For each route, a global Handlebars helper is created. Also, a method is created
-in the Meteor.paths namespace. This let's you specify a path in your html
+in the Meteor.pages namespace. This let's you specify a path in your html
 without always having to handle click events just to navigate around the app.
 
 A path helper can take an optional `context` object. By default it will use the
@@ -140,7 +140,7 @@ this:
 
 ```javascript
 function someMethod() {
-  var path = Meteor.paths.showPostPath(context);
+  var path = Meteor.pages.showPostPath(context);
 }
 ```
 
