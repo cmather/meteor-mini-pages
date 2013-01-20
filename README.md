@@ -46,7 +46,7 @@ object of options. The options are:
 * **to**: Name of the template.
 
 * **as**: Optional name of the path helper. Path helpers will have the form
-  `postFormPath` and take a context parameter or use `this` by default. By
+  `<as value>Path` and take a context parameter or use `this` by default. By
   default the path helper will be named the same as the `to` property or
   template name.
 
