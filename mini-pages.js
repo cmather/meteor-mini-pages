@@ -293,13 +293,13 @@
 
       var wrapBeforeHandler = function (handler) {
         return function (context, next) {
-          context = _.extend(context, {
+          context = _.extend({
             stopped: false,
             stop: function () {
               this.stopped = true;
               this.unhandled = true;
             }
-          });
+          }, context);
 
           handler(context);
          
