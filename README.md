@@ -111,10 +111,10 @@ Use the `yield` helper to yield the child template.
 Meteor.pages({
   '/posts/:_id' : { to: 'postShow', layout: 'layout' }
 });
+```
 
 You can set the `layout` property to `false` or to another layout. By default it
 will use `layout` if such a template is defined.
-```
 
 ###Page Helpers
 For each route, a global Handlebars helper is created. Also, a method is created
