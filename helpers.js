@@ -33,6 +33,8 @@
     }
 
     Meteor.RouteMap.onAttachPathHelper = function (pathName, route) {
+      if (Handlebars._default_helpers[pathName]) return;
+
       Handlebars.registerHelper(pathName, function (context, options) {
         if (arguments.length === 1) {
           /* no context parameter was passed to helper */
