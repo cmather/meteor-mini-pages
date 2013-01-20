@@ -4,6 +4,7 @@
     "branch": "master"
   },
   "packages": {
-    "mini-pages": {}
+    "mini-pages": {
+    }
   }
 }

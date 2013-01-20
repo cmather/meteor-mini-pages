@@ -3,7 +3,7 @@
   "description": "Simple client side page routing",
   "homepage": "https://github.com/cmather/meteor-mini-pages",
   "author": "Chris Mather <mather@eventedmind.com>",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "git": "https://github.com/cmather/meteor-mini-pages.git",
   "packages": {
     "page-js": {}

@@ -25,13 +25,15 @@
     constructor: RouteMap,
 
     render: function () {
-      var self = this;
-      var currentPageSessionKey = RouteMap.config.currentPageSessionKey;
-      var currentNavSessionKey = RouteMap.config.currentNavSessionKey; 
-      var childContent;
+      var self = this,
+          currentPageSessionKey = RouteMap.config.currentPageSessionKey,
+          currentNavSessionKey = RouteMap.config.currentNavSessionKey, 
+          childContent,
+          data,
+          route;
 
       /* This will add current context for reactivity */
-      var route = self.current();
+      route = self.current();
 
       if (route) {
         /* might use this later */
