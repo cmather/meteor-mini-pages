@@ -24,54 +24,54 @@
   RouteMap.prototype = {
     constructor: RouteMap,
 
-    render: function () {
+    render: function (options) {
       var self = this,
           currentPageSessionKey = RouteMap.config.currentPageSessionKey,
-          currentNavSessionKey = RouteMap.config.currentNavSessionKey, 
-          childContent,
-          data,
-          route;
+          currentNavSessionKey = RouteMap.config.currentNavSessionKey;
 
-      /* This will add current context for reactivity */
-      route = self.current();
+      var body = function () {
+        var layout;
+        var route = self.current();
 
-      if (route) {
-        /* might use this later */
-        data = {};
-
-        childContent = Template[route.templateName](data);
-
-        if (currentPageSessionKey !== false && currentPageSessionKey && route.as) {
-          Session.set(currentPageSessionKey, route.as);
-        }
-
-        if (currentNavSessionKey !== false && currentNavSessionKey && route.nav) {
-          Session.set(currentNavSessionKey, route.nav);
-        }
-
-        if (route.layoutTemplateName) {
-          var layoutTemplate = Template[route.layoutTemplateName];
-
-          if(!layoutTemplate)
-            throw new Error('layout template ' + route.template + ' not found');
-
-          if (!RouteMap.onAttachYieldHelper) {
-            throw new Error(
-              'RouteMap.onAttachYieldHelper is undefined.'
-            );
+        if (route) {
+          if (currentPageSessionKey !== false && currentPageSessionKey && route.as) {
+            Session.set(currentPageSessionKey, route.as);
           }
 
-          RouteMap.onAttachYieldHelper(layoutTemplate, childContent);
+          if (currentNavSessionKey !== false && currentNavSessionKey && route.nav) {
+            Session.set(currentNavSessionKey, route.nav);
+          }
 
-          return layoutTemplate(data);
+          if (route.layoutTemplateName) {
+            layout = Template[route.layoutTemplateName];
+            if (!layout)
+              throw new Error("No layout template named " + 
+                  route.layoutTemplateName + " was found for route " +
+                  route.as)
+          } else {
+            console.log('no layout specified');
+            layout = function (data) { return data["yield"](); }
+          }
+
+          return layout({
+            "yield": function () {
+              var template = Template[route.templateName];
+              if (!template)
+                throw new Error("No template named " + route.templateName +
+                                " found for route " + route.as);
+
+              return Spark.isolate(template);
+            }
+          });
 
         } else {
-          return childContent;
+          return "";
         }
-      } else {
-        return "";
-      }
+      };
 
+      var bodyFrag = Meteor.render(body);
+      document.body.innerHTML = "";
+      document.body.appendChild(bodyFrag);
     },
 
     configure: function (options) {
@@ -81,7 +81,7 @@
 
     go: function (path, state) {
       /**
-       * Let page handle everything. If the path was registered
+       * Let page handle pushState and popstate. If the path was registered
        * through the RouteMap, then the RouteMap.Route instance
        * will call the _set method on this RouteMap with the Route
        * passed as a parameter. That will trigger the context
@@ -322,6 +322,7 @@
 
   Meteor.startup(function () {
     page();
+    Meteor.router.render();
   });
 
 }());

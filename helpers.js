@@ -4,10 +4,6 @@
   var currentPageSessionKey = config.currentPageSessionKey;
 
   if (Handlebars) {
-    Handlebars.registerHelper('page', function (options) {
-      return new Handlebars.SafeString(Meteor.router.render());
-    });
-
     Handlebars.registerHelper('currentPage', function (options) {
       return Session.get(currentPageSessionKey);
     });
@@ -23,14 +19,6 @@
     Handlebars.registerHelper('currentNavIs', function (name, options) {
       return Session.equals(currentNavKey, name);
     });
-
-    Meteor.RouteMap.onAttachYieldHelper = function (template, content) {
-      template.helpers({
-        "yield": function (options) {
-          return new Handlebars.SafeString(content);
-        }
-      });
-    }
 
     Meteor.RouteMap.onAttachPageHelper = function (pageName, route) {
       if (Handlebars._default_helpers[pageName]) return;
