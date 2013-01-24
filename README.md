@@ -30,6 +30,7 @@ docs. Contributions are also very welcome!
 <template name="layout">
   <h1>Layout</h1>
 
+  <!-- yield the child template. don't forget the triple handles -->
   {{{yield}}}
 </template>
 
@@ -91,7 +92,7 @@ the `as` property, or the name of the template by default (as specified by the
     </td>
     <td>
       <!-- or you can provide a context object as a parameter -->
-      <a href="{{showPostPath this}}>Show with Explicit Context</a>
+      <a href="{{showPostPath this}}">Show with Explicit Context</a>
     </td>
   </tr>
 </template>
