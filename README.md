@@ -5,7 +5,7 @@ mini-pages is a simple client side page routing library for Meteor. It was
 heavily inspired by the Meteor.Router project:
 https://github.com/tmeasday/meteor-router.
 
-Latest version: 0.2.0
+Latest version: 0.2.1
 
 ##Notes
 
