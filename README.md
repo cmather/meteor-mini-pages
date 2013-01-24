@@ -123,7 +123,7 @@ These callbacks take two parameters:
    before the page is rendered. For example, you could change the layout
    template of the page dynamically based on whether the user is logged in.
 
-**Example 1: Redirect the user
+**Example 1: Redirect the user**
 
 ```javascript
 function authorize (context, page) {
@@ -133,7 +133,7 @@ function authorize (context, page) {
 }
 ```
 
-**Example 2: Dynamic layout
+**Example 2: Dynamic layout**
 
 ```javascript
 function setLayout (context, page) {
