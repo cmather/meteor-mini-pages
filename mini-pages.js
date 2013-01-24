@@ -391,8 +391,15 @@
     go          : _.bind(Meteor.router.go, Meteor.router)
   });
 
-  Meteor.startup(function () {
-    /* start things in motion with page-js */
-    page();
-  });
+  // XXX Hacky 
+  // Give user code a chance to run before adding our callback to the
+  // startup queue. This is to work around a bug in the coffeescript package
+  // where Template is not defined at the time of coffeescript file compilation.
+  
+  Meteor.setTimeout(function () {
+    Meteor.startup(function () {
+      /* start things in motion with page-js */
+      page();
+    });
+  }, 0);
 }());
