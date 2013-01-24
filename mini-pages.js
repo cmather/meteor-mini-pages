@@ -365,7 +365,7 @@
         layoutName = self.layoutTemplateName;
 
         layoutFn = Template[layoutName] ? Template[layoutName] :
-          function (data) { return data["yeild"](); };
+          function (data) { return data["yield"](); };
 
         return layoutFn({
           "yield": function () {
