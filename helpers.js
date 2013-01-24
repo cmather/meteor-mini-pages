@@ -1,41 +1,3 @@
-// (function () {
-//   var config = Meteor.RouteMap.config;
-//   var currentNavKey = config.currentNavSessionKey;
-//   var currentPageSessionKey = config.currentPageSessionKey;
-
-//   if (Handlebars) {
-//     Handlebars.registerHelper('currentPage', function (options) {
-//       return Session.get(currentPageSessionKey);
-//     });
-
-//     Handlebars.registerHelper('currentPageIs', function (name, options) {
-//       return Session.equals(currentPageSessionKey, name);
-//     });
-
-//     Handlebars.registerHelper('currentNav', function (options) {
-//       return Session.get(currentNavKey);
-//     });
-
-//     Handlebars.registerHelper('currentNavIs', function (name, options) {
-//       return Session.equals(currentNavKey, name);
-//     });
-
-//     Meteor.RouteMap.onAttachPageHelper = function (pageName, route) {
-//       if (Handlebars._default_helpers[pageName]) return;
-
-//       Handlebars.registerHelper(pageName, function (context, options) {
-//         if (arguments.length === 1) {
-//           /* no context parameter was passed to helper */
-//           return route.pathWithContext(this);
-//         } else {
-//           /* a contet parameter was passed */
-//           return route.pathWithContext(context);
-//         }
-//       });
-//     };
-//   }
-// }());
-
 if (Handlebars) {
   Meteor.PageRouter.onAttachPathHelper = function (helperName, fn) {
     if (Handlebars._default_helpers[helperName]) return;
@@ -47,4 +9,20 @@ if (Handlebars) {
         return fn(context);
     });
   }
+
+  Handlebars.registerHelper("page", function (options) {
+    return Session.get("page");
+  });
+
+  Handlebars.registerHelper("pageIs", function (name, options) {
+    return Session.equals("page", name);
+  });
+
+  Handlebars.registerHelper("nav", function (options) {
+    return Session.get("nav");
+  });
+
+  Handlebars.registerHelper("navIs", function (name, options) {
+    return Session.equals("nav", name);
+  });
 }

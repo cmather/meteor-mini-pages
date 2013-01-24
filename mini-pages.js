@@ -1,5 +1,7 @@
 (function () {
   
+  /* page-js enhancements */
+
   /* modify page-js to not push a route if the context is stopped */
   page.Context.prototype.save = function () {
     if (!this.stopped)
@@ -9,8 +11,28 @@
   /* Provide a stop() method in a page-js Context instance */
   page.Context.prototype.stop = function () {
     this.stopped = true;
+    this.unhandled = true;
   };
 
+  /* in our before filters we can redirect without worrying
+   * about stopping the context
+   *
+   */
+  page.Context.prototype.redirect = function (path, state) {
+    this.stop();
+    Meteor.go(path, state);
+  };
+
+  /* end page-js enhancements */
+
+
+  /**
+   * Add path helpers to template engine and the Meteor namespace. Path
+   * helpers will look like: {{showPostPath post}} or Meteor.showPostPath({});
+   * @api private
+   * @param {String} helperName Name of the helper method.
+   * @param {Page} page The Page instance.
+   */
   function attachPathHelpers(helperName, page) {
     if (!PageRouter.onAttachPathHelper)
       throw new Error('Your template engine might not be supported in the ' +
@@ -36,15 +58,26 @@
   var PageRouter = function () {
     this._page = null;
     this._pages = {};
+    this._currentPageContexts = new Meteor.deps._ContextSet;
   };
 
   PageRouter.prototype = {
     constructor: PageRouter,
 
     /**
-     * Create a bunch of page routes at once.
+     * Create page routes. Example:
+     *
+     * Meteor.pages({
+     *  '/' : { to: 'templateName', as: 'pathHelperName', nav: 'navBar', before: [setPost] },
+     *  '*' : '404' 
+     * });
+     *
+     * See the Page prototype for various route options.
+     *
      * @api public
-     * @param {Object} routes A map of pages '/posts/:_id' : { see Page ctor }
+     * @param {Object} routes An object with routes as keys and Page constructor
+     * parameters as values. Values can either be a string (template name) or
+     * a config object that will be passed to the Page constructor.
      * @return {PageRouter} Returns the PageRouter instance (self).
      */
     pages: function (routes) {
@@ -52,19 +85,19 @@
 
       _.each(routes, function (config, path) {
         var page = new Page(self, path, config);
-        self._pages[page.as] = page;
+        self._pages[page.name] = page;
       });
 
       return self;
     },
 
     /**
-     * Returns the current page.
+     * Returns the current page. Reactive.
      * @api public
      * @return {Page} An instance of the Page constructor.
      */
     page: function () {
-      this._pageContexts.addCurrentContext();
+      this._currentPageContexts.addCurrentContext();
       return this._page;
     },
 
@@ -80,13 +113,26 @@
       return page(path, state);
     },
 
+    /**
+     * Sets the current page and Session values, and reactively calls
+     * the run method of the page. That in turn runs the before callbacks
+     * and renders the page to the body of the document. Should not be called
+     * directly.
+     * @api protected
+     * @param {Page} nextPage The page instance to run.
+     * @param {page.Context} context The context created from page-js.
+     */
     run: function (nextPage, context) {
       var self = this;
 
       if (self._page !== nextPage) {
         self._page = nextPage;
+        self._currentPageContexts.invalidateAll();
         
         if (self._pageHandle) self._pageHandle.stop();
+
+        Session.set("page", nextPage.name);
+        Session.set("nav", nextPage.nav);
 
         Meteor.autorun(function (handle) {
           self._pageHandle = handle;
@@ -96,10 +142,36 @@
     }
   };
 
+  /**
+   * Page holds all the information associated with a particular route,
+   * including before callbacks, nav, name, route and layout properties, and
+   * methods like pathWithContext.
+   *
+   * Example:
+   *
+   * var page = new Page(Meteor.router, '/posts/:_id', {
+   *  to: 'templateName',
+   *  as: 'somePathName',
+   *  nav: 'a nav key for use with top nav bars',
+   *  before: [authorize, setPost]
+   * });
+   *
+   * Or with a string template name as the third parameter:
+   *
+   * var page = new Page(Meteor.router, '/posts/:_id', 'showPost');
+   *
+   *
+   * @api public
+   * @param {PageRouter} router A PageRouter instance.
+   * @param {String|RegExp} path A string or regular expression path.
+   * @param {Object|String} options An options object or a string template name.
+   *
+   */
   var Page = function (router, path, options) {
     this.router = router;
     this.path = path;
-    this.isPageCreated = false;
+    this.isRouteCreated = false;
+    this.route = null;
 
     if (! (router instanceof PageRouter))
       throw new Error('First parameter to Page ctor must be an instance of' +
@@ -132,11 +204,10 @@
     constructor: Page,
 
     /**
-     * Proxy the route setup to the page handler, readying all the before
-     * callbacks.
+     * Proxy the route setup to the page handler. Can only be called once.
      * @api public
      * @param {String} templateName The name of the template to render.
-     * @return {Page} Returns the Page instance.
+     * @return {Page} The Page instance for chainability.
      */
     to: function (templateName) {
       var pageHandler,
@@ -148,11 +219,13 @@
           'call the "to" method once.');
       }
 
+      if (!_.isFunction(Template[templateName]))
+        throw new Error('No template found named ' + templateName + '. ' +
+                      ' Are you sure you defined it?');
 
-      /* XXX Hack. Need to store a Route instance so we can do the path
-       * helpers later
-       */
-      this.pageRoute = new page.Route(this.path);
+
+      // XXX Remove page-js dependency at some point.
+      this.route = new page.Route(this.path);
 
       this.templateName = templateName;
 
@@ -170,18 +243,35 @@
      * Name the page
      * @api public
      * @param {String} name The name of the page if different from the template.
-     * @return {Page} Returns Page instance. 
+     * @return {Page} The Page instance for chainability.
      */
     as: function (name) {
-      this.as = name;
+      this.name = name;
       attachPathHelpers(name + 'Path', this);
       return this;
     },
 
+    /**
+     * Specify a nav key. This can be useful when you want to highlight
+     * a top nav bar and a few different templates will use the same
+     * nav bar menu item. This can be used in combination with a Handlebars
+     * helper like this: {{nav}} or {{navIs 'posts'}}.
+     * @api public
+     * @param {String} nav The name for the nav value.
+     * @return {Page} The Page instance for chainability.
+     */
     withNav: function (nav) {
       this.nav = nav;
+      return this;
     },
 
+    /**
+     * Specifies a layout for the page. Pages will be rendered inside their
+     * layouts inside the {{{yield}}} expression.
+     * @api public
+     * @param {String} templateName The name of the layout template.
+     * @return {Page} The Page instance for chainability.
+     */
     withLayout: function (templateName) {
       if (!Template[templateName])
         throw new Error("Couln't find a layout template with name " + 
@@ -191,16 +281,40 @@
       return this;
     },
 
+    /**
+     * Sets the before callbacks which are run reactively before the page
+     * is rendered.
+     * @api public
+     * @param {Array|Function} callbacks A function or array of functions to
+     * be called before the page is rendered. These can be used to set Session
+     * values for example.
+     */
     before: function (callbacks) {
-      this.beforeCallbacks = callbacks;
+      this.beforeCallbacks = _.isArray(callbacks) ? callbacks : [callbacks];
       return this;
     },
 
+    /**
+     * Given a context object returns a path for the page. Used in path helpers
+     * that are automatically created as global handlebars helpers as well as
+     * off the Meteor namespace.
+     *
+     * Example:
+     *
+     * var page = new Page(Meteor.router, '/posts/:_id', 'showPost');
+     * var context = { _id: 123 };
+     * var path = page.pathWithContext(context);
+     * => /posts/123
+     *
+     * @api public
+     * @param {Object} context A context object to interpolate the path with.
+     * @return {String} The path to be used in a link.
+     */
     pathWithContext: function (context) {
       var self = this;
-      var pageRoute = self.pageRoute;
+      var route = self.route;
       var path = self.path;
-      var parts = pageRoute.regexp.exec(pageRoute.path).slice(1);
+      var parts = route.regexp.exec(route.path).slice(1);
 
       context = context || {};
 
@@ -217,20 +331,30 @@
       return path;
     },
 
+    /**
+     * Run all the before callbacks and then render the page if the context
+     * has not been stopped.
+     * @api protected
+     * @param {Object} context A context from page-js
+     */
     run: function (context) {
-
-      var beforeCallbacks = this.beforeCallbacks;
+      var beforeCallbacks = this.beforeCallbacks || [];
 
       context = context || {};
 
       for (var i = 0; i < beforeCallbacks.length; i++) {
         if (context.stopped) return;
-        else beforeCallbacks[i].call(this, context);
+        else beforeCallbacks[i].call(this, context, this);
       }
 
-      this.render();
+      if (!context.stopped) this.render();
     },
 
+    /**
+     * Render the page to the body. Includes support for templates using the
+     * {{{yield}}} expression.
+     * @api protected
+     */
     render: function () {
       var self = this;
 
@@ -258,6 +382,8 @@
   };
 
   Meteor.router = new PageRouter();
+
+  /* The main API interface */
   _.extend(Meteor, {
     PageRouter  : PageRouter,
     pages       : _.bind(Meteor.router.pages, Meteor.router),
@@ -266,6 +392,7 @@
   });
 
   Meteor.startup(function () {
+    /* start things in motion with page-js */
     page();
   });
 }());
