@@ -1,252 +1,199 @@
 (function () {
-
-  // XXX: Hack. If a user ends up aborting a route in the middle and
-  // redirecting, the original url sticks around because the page
-  // library doesn't check whether the user stoped the route. Maybe
-  // find a cleaner way or make a pull request to page-js.
-  page.Context.prototype.save = function(){
+  
+  /* modify page-js to not push a route if the context is stopped */
+  page.Context.prototype.save = function () {
     if (!this.stopped)
       history.replaceState(this.state, this.title, this.canonicalPath);
   };
-  
 
-  var RouteMap = function (options) {
-    var self = this;
-    self.contexts = new Meteor.deps._ContextSet;
-    self.options = options || {};
+  /* Provide a stop() method in a page-js Context instance */
+  page.Context.prototype.stop = function () {
+    this.stopped = true;
   };
 
-  RouteMap.config = {
-    currentPageSessionKey: "currentPage",
-    currentNavSessionKey: "currentNav"
-  };
+  function attachPathHelpers(helperName, page) {
+    if (!PageRouter.onAttachPathHelper)
+      throw new Error('Your template engine might not be supported in the ' +
+                      'mini-pages package. Could not find PageRouter.' +
+                      'onAttachPathHelper which is normally defined in ' +
+                      'the mini-pages/helpers.js file');
 
-  RouteMap.prototype = {
-    constructor: RouteMap,
-
-    render: function (options) {
-      var self = this,
-          currentPageSessionKey = RouteMap.config.currentPageSessionKey,
-          currentNavSessionKey = RouteMap.config.currentNavSessionKey;
-
-      var body = function () {
-        var layout;
-        var route = self.current();
-
-        if (route) {
-          if (currentPageSessionKey !== false && currentPageSessionKey && route.as) {
-            Session.set(currentPageSessionKey, route.as);
-          }
-
-          if (currentNavSessionKey !== false && currentNavSessionKey && route.nav) {
-            Session.set(currentNavSessionKey, route.nav);
-          }
-
-          if (route.layoutTemplateName) {
-            layout = Template[route.layoutTemplateName];
-            if (!layout)
-              throw new Error("No layout template named " + 
-                  route.layoutTemplateName + " was found for route " +
-                  route.as)
-          } else {
-            console.log('no layout specified');
-            layout = function (data) { return data["yield"](); }
-          }
-
-          return layout({
-            "yield": function () {
-              var template = Template[route.templateName];
-              if (!template)
-                throw new Error("No template named " + route.templateName +
-                                " found for route " + route.as);
-
-              return Spark.isolate(template);
-            }
-          });
-
-        } else {
-          return "";
-        }
+    if (!Meteor[helperName]) {
+      var helper = function (context) {
+        return page.pathWithContext(context);
       };
 
-      var bodyFrag = Meteor.render(body);
-      document.body.innerHTML = "";
-      document.body.appendChild(bodyFrag);
-    },
+      Meteor[helperName] = helper;
+      PageRouter.onAttachPathHelper(helperName, helper);
+    }
+  }
 
-    configure: function (options) {
-      options = options || {};
-      _.extend(this.options, options);
-    },
+  /**
+   * PageRouter manages all of an application's registered pages.
+   * @api public
+   * @return {Object} PageRouter instance.
+   */
+  var PageRouter = function () {
+    this._page = null;
+    this._pages = {};
+  };
 
-    go: function (path, state) {
-      /**
-       * Let page handle pushState and popstate. If the path was registered
-       * through the RouteMap, then the RouteMap.Route instance
-       * will call the _set method on this RouteMap with the Route
-       * passed as a parameter. That will trigger the context
-       * invalidations
-       */
-
-      return page.show(path, state);
-    },
+  PageRouter.prototype = {
+    constructor: PageRouter,
 
     /**
-     * Create one route at a time
+     * Create a bunch of page routes at once.
+     * @api public
+     * @param {Object} routes A map of pages '/posts/:_id' : { see Page ctor }
+     * @return {PageRouter} Returns the PageRouter instance (self).
      */
-    match: function (path, options) {
-      return this.createRoute(path, options);
-    },
-
-    /**
-     * Create all routes at once
-     */
-    draw: function (routeMap) {
+    pages: function (routes) {
       var self = this;
 
-      for (var path in routeMap) {
-        self.createRoute(path, routeMap[path]);
-      }
+      _.each(routes, function (config, path) {
+        var page = new Page(self, path, config);
+        self._pages[page.as] = page;
+      });
 
       return self;
     },
 
     /**
-     * Simple Route instance factory
-     *
+     * Returns the current page.
+     * @api public
+     * @return {Page} An instance of the Page constructor.
      */
-    createRoute: function (path, options) {
-      return new RouteMap.Route(this, path, options);
+    page: function () {
+      this._pageContexts.addCurrentContext();
+      return this._page;
     },
 
     /**
-     * The current route. Reactive.
-     *
+     * Proxy to the page(path, state) method and route to the given
+     * path, passing an optional state object.
+     * @api public
+     * @param {String} path A path such as '/posts/5'
+     * @param {Object} state (Optional) state object that will get passed to
+     *                       before filters and set in pushState.
      */
-    current: function () {
-      var self = this;
-      self.contexts.addCurrentContext();
-      return self._currentRoute;
+    go: function (path, state) {
+      return page(path, state);
     },
 
-    /**
-     * Do not call directly. Called by Route instances when
-     * the page library triggers the route's pageHandler callback. This
-     * method in turn invalidates our contexts and sets the current page
-     */
-    _set: function (route) {
+    run: function (nextPage, context) {
       var self = this;
 
-      if (route !== self._currentRoute) {
-        self._currentRoute = route;
-        self.contexts.invalidateAll();
+      if (self._page !== nextPage) {
+        self._page = nextPage;
+        
+        if (self._pageHandle) self._pageHandle.stop();
+
+        Meteor.autorun(function (handle) {
+          self._pageHandle = handle;
+          nextPage.run(context);
+        });
       }
     }
   };
 
+  var Page = function (router, path, options) {
+    this.router = router;
+    this.path = path;
+    this.isPageCreated = false;
 
-  RouteMap.Route = function (routeMap, path, options) {
-    var self = this;
-    var routeMap = self.routeMap = routeMap;
-
-    if (! (routeMap instanceof RouteMap))
-      throw new Error('first parameter must be a RouteMap');
-
+    if (! (router instanceof PageRouter))
+      throw new Error('First parameter to Page ctor must be an instance of' +
+        'Pages');
     if (!(_.isString(path) || _.isRegExp(path)))
-      throw new Error('path is a required parameter to RouteMap.Route');
+      throw new Error('path parameter to Page ctor must be a string or regex');
 
     if (_.isString(options)) {
       options = { to: options };
-    }
-    else if (_.isObject(options)) {
-      if (!options.to)
-        throw new Error('No "to" was specified in options');
-    }
-    else {
-      throw new Error(
-        'Second parameter must be a template name or an options object'
-      );
+    } else if (_.isObject(options) && !options.to) {
+      throw new Error('Options in Page ctor must contain a "to"' +
+        'property specifying a template name');
     }
 
-    if (!Template[options.to]) {
-      throw new Error(
-        'No template found with name ' + options.to
-      );
-    }
-    
-    self.isRouteCreated = false;
-    self.path = path;
-
-    if (typeof options.layout === 'undefined') {
-      if (Template.layout) {
-        self.withLayout('layout');
-      }
+    if (typeof options.layout === 'undefined' && Template.layout) {
+      this.withLayout('layout');
     } else if (options.layout) {
-      self.withLayout(options.layout);
+      this.withLayout(options.layout);
     }
 
-    if (options.before) self.before(options.before);
+    if (options.before) this.before(options.before);
+    if (options.nav) this.withNav(options.nav);
+    if (options.to) this.to(options.to);
 
-    if (options.nav) self.withNav(options.nav);
-
-    if (options.to) self.to(options.to);
-
-    if (options.as) {
-      self.as(options.as);
-    } else if (options.to) {
-      self.as(options.to);
-    }
+    /* default to the template name for path helpers */
+    this.as( options.as ? options.as : options.to );
   };
 
-  RouteMap.Route.prototype = {
-    constructor: RouteMap.Route,
+  Page.prototype = {
+    constructor: Page,
 
+    /**
+     * Proxy the route setup to the page handler, readying all the before
+     * callbacks.
+     * @api public
+     * @param {String} templateName The name of the template to render.
+     * @return {Page} Returns the Page instance.
+     */
     to: function (templateName) {
-      var self = this;
+      var pageHandler,
+          setPage,
+          self = this;
 
-      if (self.isRouteCreated)
-        throw new Error('Route has already been created');
-
-      if (!_.isString(templateName))
-        throw new Error('template name is required first parameter');
-
-      self.templateName = templateName;
-      self.pageRoute = new page.Route(self.path);
-
-      var handlePage = (function (route) {
-        return function (context, next) {
-          if (!context.stopped) {
-            route.routeMap._set(route); 
-          }
-        }
-      })(self);
-
-      var beforeHandlers = self.beforeHandlers || [];
-      var handlers = beforeHandlers.concat(handlePage);
-      page.apply(this, [self.path].concat(handlers));
-      self.isRouteCreated = true;
-      return self;
-    },
-
-    as: function (pathName) {
-      var self = this;
-      var pathHelper = pathName + 'Page';
-      self.as = pathName;
-
-      if (!RouteMap.onAttachPageHelper)
-        throw new Error('onAttachPageHelper not found in helpers file');
-
-      RouteMap.onAttachPageHelper(pathHelper, self);
-
-      /* for use with Meteor.go(Meteor.pages.somePage({})) */
-      if (!Meteor.pages[pathHelper]) {
-        Meteor.pages[pathHelper] = function (context) {
-          context = context || this;
-          return self.pathWithContext(context);
-        }
+      if (this.isRouteCreated) {
+        throw new Error('Page has already been created. You can only ' +
+          'call the "to" method once.');
       }
 
-      return self;
+
+      /* XXX Hack. Need to store a Route instance so we can do the path
+       * helpers later
+       */
+      this.pageRoute = new page.Route(this.path);
+
+      this.templateName = templateName;
+
+      pageHandler = function (context, next) {
+        self.router.run(self, context);
+      };
+
+      page.call(this, this.path, pageHandler);
+      this.isRouteCreated = true;
+
+      return this;
+    },
+
+    /**
+     * Name the page
+     * @api public
+     * @param {String} name The name of the page if different from the template.
+     * @return {Page} Returns Page instance. 
+     */
+    as: function (name) {
+      this.as = name;
+      attachPathHelpers(name + 'Path', this);
+      return this;
+    },
+
+    withNav: function (nav) {
+      this.nav = nav;
+    },
+
+    withLayout: function (templateName) {
+      if (!Template[templateName])
+        throw new Error("Couln't find a layout template with name " + 
+          templateName + ". Are you sure you defined one?");
+
+      this.layoutTemplateName = templateName;
+      return this;
+    },
+
+    before: function (callbacks) {
+      this.beforeCallbacks = callbacks;
+      return this;
     },
 
     pathWithContext: function (context) {
@@ -255,7 +202,7 @@
       var path = self.path;
       var parts = pageRoute.regexp.exec(pageRoute.path).slice(1);
 
-      if (!context) throw new Error('context is a required parameter');
+      context = context || {};
 
       _.each(parts, function (part) {
         var re = new RegExp(part, "g");
@@ -270,59 +217,55 @@
       return path;
     },
 
-    withNav: function (nav) {
-      this.nav = nav;
-    },
+    run: function (context) {
 
-    withLayout: function (templateName) {
-      var self = this;
-      self.layoutTemplateName = templateName;
-    },
+      var beforeCallbacks = this.beforeCallbacks;
 
-    before: function (handlers) {
-      var self = this;
+      context = context || {};
 
-      if (self.isRouteCreated) {
-        throw new Error(
-          'Route has already been created. Must call this method before the "to" method'
-        );
+      for (var i = 0; i < beforeCallbacks.length; i++) {
+        if (context.stopped) return;
+        else beforeCallbacks[i].call(this, context);
       }
 
-      handlers = handlers || [];
-      handlers = _.isArray(handlers) ? handlers : [handlers];
+      this.render();
+    },
 
-      var wrapBeforeHandler = function (handler) {
-        return function (context, next) {
-          if (!_.isFunction(context.stop)) {
-            _.extend(context, {
-              stop: function () {
-                this.stopped = true;
-                this.unhandled = true;
-              }
-            });
+    render: function () {
+      var self = this;
+
+      var childFn = function () {
+        var layoutFn,
+            layoutName;
+
+        layoutName = self.layoutTemplateName;
+
+        layoutFn = Template[layoutName] ? Template[layoutName] :
+          function (data) { return data["yeild"](); };
+
+        return layoutFn({
+          "yield": function () {
+            var childFn = Template[self.templateName];
+            return Spark.isolate(childFn);
           }
-
-          handler(context);
-         
-          if (!context.stopped)
-            next && next();
-        };
+        });
       };
 
-      self.beforeHandlers = _.map(handlers, wrapBeforeHandler);
-      
-      return self;
+      var frag = Meteor.render(childFn);
+      document.body.innerHTML = "";
+      document.body.appendChild(frag);
     }
   };
 
-  Meteor.RouteMap = RouteMap;
-  Meteor.router = new Meteor.RouteMap;
-  Meteor.pages = _.bind(Meteor.router.draw, Meteor.router);
-  Meteor.go = _.bind(Meteor.router.go, Meteor.router);
+  Meteor.router = new PageRouter();
+  _.extend(Meteor, {
+    PageRouter  : PageRouter,
+    pages       : _.bind(Meteor.router.pages, Meteor.router),
+    page        : _.bind(Meteor.router.page, Meteor.router),
+    go          : _.bind(Meteor.router.go, Meteor.router)
+  });
 
   Meteor.startup(function () {
     page();
-    Meteor.router.render();
   });
-
 }());
