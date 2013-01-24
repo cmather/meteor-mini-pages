@@ -144,3 +144,14 @@ function setLayout (context, page) {
     page.withLayout('loggedoutLayout');
 }
 ```
+
+##Other Methods
+
+1. `Meteor.page()`: Gets the current Page instance.
+2. `Meteor.go("/posts", {someState: "bar"})`: Go to the given path with an
+   optional state object that will get added to the pushState state object.
+3. `Meteor.pages({})`: Define multiple page routes at once.
+4. `Meteor.router`: The PageRouter instance.
+5. `Meteor.PageRouter`: The PageRouter constructor function. You shouldn't need
+   to touch this directly unless you're adding support for a different template
+   engine.
