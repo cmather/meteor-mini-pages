@@ -1,38 +1,41 @@
 <head>
-  <title>Meteor MiniPages</title>
+  <title>Mini-Pages Example</title>
 </head>
 
 <body>
-  {{page}}
 </body>
 
 <template name="layout">
+  {{> navbar}}
+  <div class="container">
+    {{{yield}}}
+  </div>
+</template>
+
+<template name="navbar">
   <div class="navbar">
     <div class="navbar-inner">
-      <a href="{{rootPage}}" class="brand">Home</a>
-
+      <a class="brand" href="{{rootPath}}">MiniCo</a>
       <ul class="nav">
         <li class="{{navClassFor 'posts'}}">
-          <a href="{{postIndexPage}}">
-            Posts
-          </a>
+          <a href="{{postIndexPath}}">Posts</a>
         </li>
         <li class="{{navClassFor 'secret'}}">
-          <a href="{{secretPage}}">
-            Secret
-          </a>
+          <a href="{{secretPath}}">Secret</a> 
+        </li>
+
+        <li>
+          <a href="/boguspath">Bogus Path</a>
         </li>
       </ul>
     </div>
-  </div>
-
-  <div class="container">
-    {{yield}}
   </div>
 </template>
 
 <template name="postIndex">
   <h1>Post Index</h1>
+
+  <a href="{{postNewPath}}" class="btn">New Post</a>
 
   <table class="table">
     <thead>
@@ -48,58 +51,65 @@
 </template>
 
 <template name="postRow">
-   <tr>
-     <td>{{title}}</td>
-     <td>
-       <a href="{{postShowPage}}">Show</a>
-       &nbsp;
-       <a href="{{postEditPage}}">Edit</a>
-     </td>
-   </tr>
-</template>
-
-<template name="postForm">
-  {{#with post}}
-    <h1>Edit Post - {{title}}</h1>
-
-    <ul class="links">
-      <li><a href="{{postIndexPage}}">Back to All</a></li>
-      <li><a href="{{postShowPage}}">Show</a></li>
-    </ul>
-  {{/with}}
+  <tr>
+    <td>{{title}}</td>
+    <td>
+      <ul class="links">
+        <li><a href="{{postShowPath}}">Show</a></li>
+        <li><a href="{{postEditPath}}">Edit</a></li>
+      </ul>
+    </td>
+  </tr>
 </template>
 
 <template name="postShow">
   {{#with post}}
-    <h1>Post Show - {{title}}</h1>
+    <h1>Showing {{title}}</h1>
 
     <ul class="links">
-      <li><a href="{{postIndexPage}}">Back to All</a></li>
-      <li><a href="{{postEditPage}}">Edit</a></li>
+      <li>
+        <a href="{{postIndexPath}}">Back to All</a>
+      </li>
+      <li>
+        <a href="{{postEditPath}}">Edit Post</a>
+      </li>
+    </ul>
+  {{/with}}
+</template>
+
+<template name="postForm">
+  <h1>Post Form</h1>
+  {{#with post}}
+    <ul class="links">
+      <li>
+        <a href="{{postIndexPath}}">Back to All</a>
+      </li>
+      <li>
+        <a href="{{postShowPath}}">Show Post</a>
+      </li>
     </ul>
   {{/with}}
 </template>
 
 <template name="secret">
-  Shouldn't be able to get here  
-</template>
-
-<template name="unauthorized">
-  <div class="alert alert-error alert-block">
-    <p>
-      Sorry, you're not authorized to see this page!
-    </p>
+  <div class="alert alert-success alert-block">
+    <h1>You've unlocked the secret!</h1>
   </div>
 </template>
 
-<template name="notFoundLayout">
-  <h1>Sorry, the page you're looking for couldn't be found!</h1>
-  {{yield}}
+<template name="login">
+  <div class="alert alert-error alert-block">
+    <h1>401 - Login</h1>
+    <h4>You must log in to continue, or you can try Session.set("authorized", true); and try the link again.</h4>
+  </div>
 </template>
 
-<template name="notFound">
-  Yielding to the child not found template.
+<template name="404">
+  <div class="alert alert-error alert-block">
+    <h1>404 - Oh Snap :-(</h1>
+    <h4>We couldn't find the page you were looking for</h4>
+    <div>
+      <a href="{{rootPath}}">Take me home</a>
+    </div>
+  </div>
 </template>
-
-
-
