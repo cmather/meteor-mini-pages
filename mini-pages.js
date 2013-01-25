@@ -57,6 +57,7 @@
    */
   var PageRouter = function () {
     this._page = null;
+    this._path = null;
     this._pages = {};
     this._currentPageContexts = new Meteor.deps._ContextSet;
   };
@@ -125,8 +126,9 @@
     run: function (nextPage, context) {
       var self = this;
 
-      if (self._page !== nextPage) {
+      if (self._path !== context.path) {
         self._page = nextPage;
+        self._path = context.path;
         self._currentPageContexts.invalidateAll();
         
         if (self._pageHandle) self._pageHandle.stop();
