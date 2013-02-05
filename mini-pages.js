@@ -1,5 +1,5 @@
 (function () {
-  
+
   /* page-js enhancements */
 
   /* modify page-js to not push a route if the context is stopped */
@@ -70,7 +70,7 @@
      *
      * Meteor.pages({
      *  '/' : { to: 'templateName', as: 'pathHelperName', nav: 'navBar', before: [setPost] },
-     *  '*' : '404' 
+     *  '*' : '404'
      * });
      *
      * See the Page prototype for various route options.
@@ -130,7 +130,7 @@
         self._page = nextPage;
         self._path = context.path;
         self._currentPageContexts.invalidateAll();
-        
+
         if (self._pageHandle) self._pageHandle.stop();
 
         Session.set("page", nextPage.name);
@@ -222,7 +222,7 @@
       }
 
       if (!_.isFunction(Template[templateName]))
-        throw new Error('No template found named ' + templateName + '. ' +
+        console.log('Error: No template found named ' + templateName + '. ' +
                       ' Are you sure you defined it?');
 
 
@@ -276,7 +276,7 @@
      */
     withLayout: function (templateName) {
       if (!Template[templateName])
-        throw new Error("Couln't find a layout template with name " + 
+        console.log("Error: Couldn't find a layout template with name " +
           templateName + ". Are you sure you defined one?");
 
       this.layoutTemplateName = templateName;
@@ -393,11 +393,11 @@
     go          : _.bind(Meteor.router.go, Meteor.router)
   });
 
-  // XXX Hacky 
+  // XXX Hacky
   // Give user code a chance to run before adding our callback to the
   // startup queue. This is to work around a bug in the coffeescript package
   // where Template is not defined at the time of coffeescript file compilation.
-  
+
   Meteor.setTimeout(function () {
     Meteor.startup(function () {
       /* start things in motion with page-js */
