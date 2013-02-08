@@ -3,6 +3,6 @@ Package.describe({
 });
 
 Package.on_use(function (api, where) {
-  api.use(['underscore', 'templating', 'page-js'], 'client');
+  api.use(['deps', 'startup', 'session', 'underscore', 'templating', 'page-js'], 'client');
   api.add_files(['mini-pages.js', 'helpers.js'], 'client');
 });
