@@ -1,0 +1,97 @@
+{
+    "project": {
+        "name": "mini-pages",
+        "description": "A simple client-side router for Meteor",
+        "version": "0.2.3",
+        "url": "https://github.com/cmather/meteor-mini-pages.git",
+        "logo": false
+    },
+    "files": {
+        "lib/mini-pages.js": {
+            "name": "lib/mini-pages.js",
+            "modules": {},
+            "classes": {
+                "PageRouter": 1,
+                "PageRouter.Page": 1
+            },
+            "fors": {},
+            "namespaces": {}
+        }
+    },
+    "modules": {},
+    "classes": {
+        "PageRouter": {
+            "name": "PageRouter",
+            "shortname": "PageRouter",
+            "classitems": [],
+            "plugins": [],
+            "extensions": [],
+            "plugin_for": [],
+            "extension_for": [],
+            "file": "lib/mini-pages.js",
+            "line": 20,
+            "description": "The main mini-pages class. Manages creating pages, rendering and \nresponding to url path changes. You can only create one PageRouter instance.",
+            "is_constructor": 1,
+            "optional": 1,
+            "params": [
+                {
+                    "name": "options",
+                    "description": "PageRouter options",
+                    "type": "Object",
+                    "optional": true,
+                    "props": [
+                        {
+                            "name": "autoRender",
+                            "description": "Set `false` to render manually \n (i.e. when you use the {{renderPage}} Handlebars helper",
+                            "type": "Boolean",
+                            "optional": true
+                        },
+                        {
+                            "name": "autoStart",
+                            "description": "Set to `false` to manually decide \n when to listen for url change events.",
+                            "type": "Boolean",
+                            "optional": true
+                        }
+                    ]
+                }
+            ]
+        },
+        "PageRouter.Page": {
+            "name": "PageRouter.Page",
+            "shortname": "PageRouter.Page",
+            "classitems": [],
+            "plugins": [],
+            "extensions": [],
+            "plugin_for": [],
+            "extension_for": [],
+            "file": "lib/mini-pages.js",
+            "line": 188,
+            "description": "Stores information about a specific route.",
+            "is_constructor": 1,
+            "access": "protected",
+            "tagname": ""
+        }
+    },
+    "classitems": [
+        {
+            "file": "lib/mini-pages.js",
+            "line": 57,
+            "description": "Map urls to pages.",
+            "example": [
+                "\n    var router = new Meteor.PageRouter({});\n    router.pages({\n     \"/posts/:_id\": {\n        to: \"templateName\",\n        layout: \"layoutName\",\n        nav: \"nav key\",\n        before: [ before callbacks ],\n        as: \"path helpers name\"\n     }\n    });"
+            ],
+            "itemtype": "method",
+            "name": "pages",
+            "chainable": 1,
+            "params": [
+                {
+                    "name": "pages",
+                    "description": "An object of page definitions where the key is a\n url path and the values are options to the \n {{#crossLink \"PageRouter.Page\"}}{{/crossLink}} constructor.",
+                    "type": "Object"
+                }
+            ],
+            "class": "PageRouter"
+        }
+    ],
+    "warnings": []
+}

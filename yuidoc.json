@@ -1,0 +1,13 @@
+{
+  "name": "mini-pages",
+  "description": "A simple client-side router for Meteor",
+  "version": "0.2.3",
+  "url": "https://github.com/cmather/meteor-mini-pages.git",
+  "logo": false,
+  "options": {
+    "paths": [
+      "./lib"
+    ],
+    "outdir": "./docs"
+  }
+}

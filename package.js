@@ -12,14 +12,12 @@ Package.on_use(function (api, where) {
     'page-js'
   ], 'client');
 
-  api.add_files(['mini-pages.js', 'helpers.js'], 'client');
+  api.add_files(['lib/mini-pages.js', 'lib/helpers.js'], 'client');
 });
 
 Package.on_test(function (api) {
   api.use('mini-pages', ['client', 'server']);
   api.use('test-helpers', ['client', 'server']);
   api.use('tinytest', ['client', 'server']);
-
-  api.use('session', 'client');
   api.add_files('tests/client_test.js', 'client');
 });
