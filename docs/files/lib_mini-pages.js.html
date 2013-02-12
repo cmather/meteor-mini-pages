@@ -41,9 +41,13 @@
         <div id="api-tabview-panel">
             <ul id="api-classes" class="apis classes">
             
+                <li><a href="..&#x2F;classes/MeteorExtensions.html">MeteorExtensions</a></li>
+            
                 <li><a href="..&#x2F;classes/PageRouter.html">PageRouter</a></li>
             
                 <li><a href="..&#x2F;classes/PageRouter.Page.html">PageRouter.Page</a></li>
+            
+                <li><a href="..&#x2F;classes/PageRouter.PageInvocation.html">PageRouter.PageInvocation</a></li>
             
             </ul>
 
@@ -90,10 +94,44 @@
     <pre class="code prettyprint linenums">
 (function () {
 
+  &#x2F;* modify page-js to not push a route if the context is stopped *&#x2F;
+  page.Context.prototype.save = function () {
+    if (!this.stopped)
+      history.replaceState(this.state, this.title, this.canonicalPath);
+  };
+
+  &#x2F;* Provide a stop() method in a page-js Context instance *&#x2F;
+  page.Context.prototype.stop = function () {
+    this.stopped = true;
+    this.unhandled = true;
+  };
+
   var sessionLayoutKey = &quot;mini-pages-router_layout&quot;;
   var sessionTemplateKey = &quot;mini-pages-router_template&quot;;
   var sessionNavKey = &quot;mini-pages-router_nav&quot;;
+  var sessionInvocationKey = &quot;mini-pages-router_invocation&quot;;
 
+  &#x2F;* Hook to attach path helpers to Handlebars or any other registered
+   * template engine. Look in lib&#x2F;helpers.js for example.
+   *&#x2F;
+  function attachPathHelpers (helperName, page) {
+    if (!PageRouter.onAttachPathHelper)
+      throw new Error(&#x27;Your template engine might not be supported in the &#x27; +
+                      &#x27;mini-pages package. Could not find PageRouter.&#x27; +
+                      &#x27;onAttachPathHelper which is normally defined in &#x27; +
+                      &#x27;the mini-pages&#x2F;lib&#x2F;helpers.js file&#x27;);
+    
+    if (!Meteor[helperName]) {
+      var helper = function (context) {
+        return page.pathWithContext(context);
+      }
+
+      Meteor[helperName] = helper;
+      PageRouter.onAttachPathHelper(helperName, helper);
+    }
+  }
+
+  &#x2F;* Throws an error if it can&#x27;t find the template in Template *&#x2F;
   function getTemplate (name) {
     if (!Template[name])
       throw new Error(
@@ -103,22 +141,57 @@
     return Template[name];
   }
 
+  &#x2F;* Strong check if original is undefined use a defualt value *&#x2F;
   function defaultValue (original, value) {
     return typeof original === &#x27;undefined&#x27; ? value : original;
   }
 
+  &#x2F;* Coerces value into an array even if the value is already an array,
+   * is falsy or an object
+   *&#x2F;
+  function arrayFrom (value) {
+    if (_.isArray(value))
+      return value;
+    else if (typeof value === &#x27;undefined&#x27;)
+      return [];
+    else
+      return [value];
+  }
+
+  &#x2F;* Coerce a and b into arrays, concat b onto a and return the result *&#x2F;
+  function concatValuesIntoArray (a, b) {
+    return arrayFrom(a).concat(arrayFrom(b));
+  }
+
+  &#x2F;* display a console warning if we can *&#x2F;
+  function warn () {
+    if (console &amp;&amp; console.warn) {
+      var msg = _.toArray(arguments).join(&quot;&quot;);
+      console.warn(&quot;mini-pages: &quot;, msg);
+    }
+  }
+
+  &#x2F;* if template not defined in Template show a warning *&#x2F;
+  function warnIfTemplateNotFound (name) {
+    if (_.isUndefined(name))
+      return;
+    else if (!Template[name])
+      warn(&quot;A template named &#x27;&quot;, String(name), &quot;&#x27; hasn&#x27;t been defined yet.&quot;);
+  }
+
   &#x2F;**
-  The main mini-pages class. Manages creating pages, rendering and 
-  responding to url path changes. You can only create one PageRouter instance.
-  
-  @class PageRouter
-  @constructor
-  @optional
-  @param {Object} [options] PageRouter options
-   @param {Boolean} [options.autoRender] Set &#x60;false&#x60; to render manually 
-   (i.e. when you use the {{renderPage}} Handlebars helper
-   @param {Boolean} [options.autoStart] Set to &#x60;false&#x60; to manually decide 
-   when to listen for url change events.
+    The main mini-pages class. Manages creating pages, rendering and 
+    responding to url path changes. You can only create one PageRouter instance.
+    
+    @class PageRouter
+    @constructor
+    @param {Object} [options] PageRouter options
+     @param {Boolean} [options.autoRender] Set &#x60;false&#x60; to render manually 
+     (i.e. when you use the {{renderPages}} Handlebars helper
+     @param {Boolean} [options.autoStart] Set to &#x60;false&#x60; to manually decide 
+     when to listen for url change events.
+     @param {Object} [options.defaults] Default options that will be applied to
+     all {{#crossLink &quot;PageRouter.Page&quot;}}{{&#x2F;crossLink}} instances.
   *&#x2F; 
   var PageRouter = function (options) {
     
@@ -132,10 +205,14 @@
 
     options = _.extend({
       autoRender: true,
-      autoStart: true
+      autoStart: true,
+      defaults: {
+        layout: &quot;layout&quot;
+      }
     }, options);
 
     this._currentPath = null;
+    this.defaults = options.defaults;
 
     if (options.autoStart) this.autoStart();
     if (options.autoRender) this.autoRender();
@@ -145,7 +222,7 @@
     constructor: PageRouter,
 
     &#x2F;**
-      Map urls to pages.
+      Create a bunch of pages at once.
 
       @example
           var router = new Meteor.PageRouter({});
@@ -173,22 +250,82 @@
       return self;
     },
 
+    &#x2F;**
+      Create a new {{#crossLink &quot;PageRouter.Page&quot;}}{{&#x2F;crossLink}}
+      and return it.
+
+      @example
+          &#x2F;&#x2F; with options
+          var router = new Meteor.PageRouter({});
+          router.match(&quot;&#x2F;posts&#x2F;:_id&quot;, { to: &quot;templateName&quot; };
+
+          &#x2F;&#x2F; no options
+          var router = new Meteor.PageRouter({});
+          router.match(&quot;&#x2F;posts&#x2F;:_id&quot;).to(&quot;templateName&quot;);
+
+      @method match
+      @param {String} path The path to match.
+      @param {Object} [options] Options to pass to the 
+        {{#crossLink &quot;PageRouter.Page&quot;}}{{&#x2F;crossLink}} constructor.
+      @return {PageRouter.Page}
+        A {{#crossLink &quot;PageRouter.Page&quot;}}{{&#x2F;crossLink}} instance.
+    *&#x2F;
     match: function (path, options) {
       return new PageRouter.Page(this, path, options);
     },
 
+    &#x2F;**
+      Navigate to a given path.
+
+      @method go
+      @chainable
+      @example
+          var router = new Meteor.PageRouter({});
+          router.go(&quot;&#x2F;posts&#x2F;1234&quot;, { someState: &quot;&quot; });
+
+      @param path {String} The path to navigate to.
+      @param [state] {Object} A state object to pass along.
+    *&#x2F;
     go: function (path, state) {
       page(path, state);
+      return this;
     },
 
+    &#x2F;**
+      Automatically start the router by adding a callback to Meteor.startup.
+      The router is auto started by default.
+
+      @method autoStart
+      @chainable
+    *&#x2F;
     autoStart: function () {
       Meteor.startup(_.bind(this.start, this));
+      return this;
     },
 
+    &#x2F;**
+      Start listening for pushState events from the browser and responding
+      to url changes. Call this to manually start listening. If you call
+      autoStart() this will automatically be called from within a Meteor.startup
+      callback. You usually shouldn&#x27;t need to call this method.
+
+      @method start
+      @chainable
+    *&#x2F;
     start: function () {
       page();
+      return this;
     },
 
+    &#x2F;**
+      Automatically render the router to the document.body. By default the
+      router will use autoRender(). If you instead want to render the router&#x27;s
+      pages in a particular part of the DOM you can call render() instead and
+      attach the document fragment manually. For example, the Handlebars helper
+      {{renderPages}} does this.
+
+      @method autoRender
+    *&#x2F;
     autoRender: function () {
       var self = this;
       Meteor.startup(function () {
@@ -200,6 +337,15 @@
       });
     },
 
+    &#x2F;**
+      Creates two isolated regions. One for the layout and one for the template.
+      Uses Spark&#x27;s native reactivity to re-render the layout or template if 
+      the router&#x27;s current layout or template changes.
+
+      @method render
+      @return {DocumentFragment | String} If called from within Meteor.render
+      it returns a DocumentFragment, otherwise a string of html.
+    *&#x2F;
     render: function () {
       var router = this,
           page;
@@ -208,9 +354,7 @@
         var layout, 
             layoutName = router.layout();
 
-        if (_.isUndefined(layoutName) &amp;&amp; Template[&quot;layout&quot;])
-          layout = Template[&quot;layout&quot;];
-        else if (_.isString(layoutName))
+        if (_.isString(layoutName))
           layout = getTemplate(layoutName);
         else
           layout = function (data) { return data[&quot;yield&quot;](); };
@@ -233,22 +377,83 @@
       return Spark.isolate(page);
     },
 
+    &#x2F;**
+      If the path is different from the current path, creates a new
+      {{#crossLink &quot;PageRouter.PageInvocation&quot;}}{{&#x2F;crossLink}} and runs
+      the page with the new invocation.
+
+      @method run
+      @chainable
+      @param path {String} The url path.
+      @param page {PageRouter.Page} A page instance.
+      @param [context] {Object} An optional context object.
+    *&#x2F;
     run: function (path, page, context) {
-      var invocation;
-
-      if (path == this._currentPath) return;
-
-      invocation = page.run(context);
-
-      if (invocation.stopped)
-        return;
-      else {
-        this.layout(invocation.layout());
-        this.template(invocation.template());
-        this.nav(invocation.nav());
-      }
+      if (path !== this._currentPath)
+        this._runWithInvocation(page, context);
+      return this;
     },
 
+    &#x2F;**
+      Creates a new {{#crossLink &quot;PageRouter.PageInvocation&quot;}}{{&#x2F;crossLink}}
+      and runs the page. Then set&#x27;s the router&#x27;s layout, template, nav and
+      invocation object (the object you get when you call {{page.someprop}} in
+      your html.
+
+      @method _runWithInvocation
+      @private
+      @param page {PageRouter.Page} The page instance.
+      @param [context] {Object} An optional context object.
+    *&#x2F;
+    _runWithInvocation: function (page, context) {
+      var self = this;
+
+      if (self._invocationHandle)
+        self._invocationHandle.stop();
+
+      self._invocationHandle = Meteor.autorun(function () {
+        var invocation = new PageRouter.PageInvocation(self, page, context);
+        page.run(invocation);
+
+        if (invocation.isStopped())
+          return;
+        else {
+          self.layout(invocation.layout());
+          self.template(invocation.template());
+          self.nav(invocation.nav());
+          self.invocation(invocation.toObject());
+        }
+      });
+    },
+
+    &#x2F;**
+      Get or set the current invocation object. This is the object that is
+      available in your template html by using the page handlebars helper like
+      this: {{page.someProperty}}. The object gets its values from a before
+      filter calling &#x60;this.set(&quot;key&quot;, &quot;value&quot;)&#x60;. The value is stored in Session
+      so that it&#x27;s reactive and survives hot code pushes.
+
+      @method invocation
+      @param [value] {Object} If an object is passed it will be set, otherwise
+        the current value will be returned.
+      @return {Object} Returns the current invocation object if no parameter is
+        passed.
+    *&#x2F;
+    invocation: function (value) {
+      if (typeof value !== &#x27;undefined&#x27;)
+        Session.set(sessionInvocationKey, value);
+      else
+        return Session.get(sessionInvocationKey);
+    },
+
+    &#x2F;**
+      Reactively get or set the current layout.
+
+      @method layout
+      @param [value] {String} The name of the layout template.
+      @return {String} If no value passed, return the current layout template
+        name.
+    *&#x2F;
     layout: function (value) {
       if (typeof value !== &#x27;undefined&#x27;)
         Session.set(sessionLayoutKey, value);
@@ -256,6 +461,25 @@
         return Session.get(sessionLayoutKey);
     },
 
+    &#x2F;**
+      Reactively test the current layout name for equality with the passed
+      value.
+
+      @method layoutEquals
+      @param value {String} The name of the layout template to test quality.
+      @return {Boolean} Returns true if the template names are equal.
+    *&#x2F;
+    layoutEquals: function (value) {
+      return Session.equals(sessionLayoutKey, value);
+    },
+
+    &#x2F;**
+      Reactively get or set the current template.
+
+      @method template
+      @param value {String} The name of the template.
+      @returns {String} If no value passed returns the name of the current template.
+    *&#x2F;
     template: function (value) {
       if (typeof value !== &#x27;undefined&#x27;)
         Session.set(sessionTemplateKey, value);
@@ -263,6 +487,25 @@
         return Session.get(sessionTemplateKey);
     },
 
+    &#x2F;**
+      Reactively test the current template name for equality with the passed
+      value.
+
+      @method templateEquals
+      @param value {String} The name of the template to test quality.
+      @return {Boolean} Returns true if the template names are equal.
+    *&#x2F;
+    templateEquals: function (value) {
+      return Session.equals(sessionTemplateKey, value);
+    },
+
+    &#x2F;**
+      Reactively get or set the current nav key.
+
+      @method nav
+      @param value {String} The value of the nav key.
+      @returns {String} If no value passed returns the current nav key.
+    *&#x2F;
     nav: function (value) {
       if (typeof value !== &#x27;undefined&#x27;)
         Session.set(sessionNavKey, value);
@@ -270,17 +513,60 @@
         return Session.get(sessionNavKey);
     },
 
+    &#x2F;**
+      Reactively test the current nav key for equality with the passed
+      value.
+
+      @method navEquals
+      @param value {String} The nav key to test for equality.
+      @return {Boolean} Returns true if the nav keys are equal.
+    *&#x2F;
+    navEquals: function (value) {
+      return Session.equals(sessionNavKey, value);
+    },
+
+    &#x2F;**
+      Returns the router&#x27;s current url path.
+
+      @method path
+      @return {String} The current url path.
+    *&#x2F;
     path: function () {
       return this._currentPath;
     }
   };
 
   &#x2F;**
-    Stores information about a specific route.
+    Controller and container class for a page route. The constructor function
+    registers the page with the underlying pushState handler. For now, we are
+    using page-js to do this. You shouldn&#x27;t create Page instances directly.
+    Instead, let the PageRouter manage this for you.
+    @example
+        new PageRouter.Page(router, &quot;&#x2F;posts&#x2F;:_id&quot;, {
+            to: &quot;templateName&quot;,
+            as: &quot;pathHelper&quot;,
+            layout: &quot;layoutTemplateName&quot;,
+            nav: &quot;navKey&quot;,
+            before: [firstFilter, secondFilter]
+        });
   
     @class PageRouter.Page
     @constructor
-    @protected
+
+    @param router {PageRouter} A PageRouter instance.
+    @param path {String} The path associated with the page.
+    @param [options] {Object | String | Function} Can either be an object
+    of options, the name of a template, or a function that will act as the
+    last before filter.
+      @param [options.to] {String} The name of a template to render.
+      @param [options.as] {String} The name used in path helpers. All names
+      will get a path helper like this: &lt;name&gt;Path. These path helpers are
+      available as methods like Meteor.postShowPath() and as Handlebars helpers.
+      @param [options.layout] {String} The name of a template to use for a layout.
+      @param [options.nav] {String} A key to use for nav. Most useful in applying
+      conditional classes to navigation bars.
+      @param [options.before] {Function | Array} A function or array of functions
+      to be called before the layout and template are rendered.
   *&#x2F; 
   PageRouter.Page = function (router, path, options) {
     var self = this;
@@ -296,14 +582,20 @@
       options = { to: options };
     }
 
-    if (!_.isUndefined(options.before)) self.before(options.before);
-    if (!_.isUndefined(options.nav)) self.nav(options.nav);
-    if (!_.isUndefined(options.to)) self.to(options.to);
-    if (!_.isUndefined(options.layout)) self.layout(options.layout);
+    self.before(concatValuesIntoArray(router.defaults.before, options.before));
+    self.nav(options.nav || router.defaults.nav);
+    self.to(options.to || router.defaults.to);
+    self.layout(options.layout || router.defaults.layout);
+
+    &#x2F;* default to the template name for path helpers *&#x2F;
+    self.as( options.as ? options.as : options.to );
 
     var onPageRoute = function (context, next) {
       self.router.run(context.path, self, context);
     };
+
+    &#x2F;&#x2F; XXX page dependency hack. should be removed.
+    self._route = new page.Route(self.path);
 
     page(path, onPageRoute);
   };
@@ -311,37 +603,148 @@
   PageRouter.Page.prototype = {
     constructor: PageRouter.Page,
 
+    &#x2F;**
+      Set a default template name for the page.
+
+      @method to
+      @chainable
+      @param template {String} The name of a template.
+    *&#x2F;
     to: function (template) {
+      warnIfTemplateNotFound(template);
       this.defaultTemplate = template;
       return this;
     },
 
+    &#x2F;**
+      Set the name of the page. Primarily used in path helpers.
+
+      @method as
+      @chainable
+      @param name {String} The name of the page, and of the path helper prefix.
+
+      @example
+          page.as(&quot;postShow&quot;);
+          &#x2F;&#x2F; results in a path helper attached to Meteor and available
+          &#x2F;&#x2F; in Handlebars.
+          &#x2F;&#x2F; {{postShowPath}}
+          &#x2F;&#x2F; Meteor.postShowPath({});
+
+    *&#x2F;
+    as: function (name) {
+      if (name) {
+        this.name = name;
+        attachPathHelpers(name + &#x27;Path&#x27;, this);
+      }
+      return this;
+    },
+
+    &#x2F;**
+      Set the default nav key for this page.
+      
+      @method nav
+      @chainable
+      @param nav {String} The name of the default nav key to use for this page.
+
+      @example
+          page.nav(&quot;posts&quot;); &#x2F;&#x2F; sets the nav key primarily used for nav bars.
+    *&#x2F;
     nav: function (nav) {
       this.defaultNav = nav;
       return this;
     },
 
+    &#x2F;**
+      Set the default layout for this page.
+
+      @method layout
+      @chainable
+      @param layout {String} The name of the template to use as a layout.
+
+      @example
+          page.layout(&quot;layoutTemplateName&quot;);
+    *&#x2F;
     layout: function (layout) {
+      warnIfTemplateNotFound(layout);
       this.defaultLayout = layout;
       return this;
     },
 
+    &#x2F;**
+      A function or array of functions to call before rendering the page. The
+      before callbacks will be called with &#x60;this&#x60; set to a
+      {{#crossLink PageRouter.PageInvocation}}{{&#x2F;crossLink}} instance.
+
+      @method before
+      @chainable
+      @param callbacks {Function | Array} A function or array of callbacks.
+    *&#x2F;
     before: function (callbacks) {
       callbacks = _.isArray(callbacks) ? callbacks : [callbacks];
-      this._beforeCallbacks.concat(callbacks);
+      this._beforeCallbacks = this._beforeCallbacks.concat(callbacks);
+      return this;
     },
 
-    run: function (context) {
+    &#x2F;**
+      Given a context object, returns a url path with the values of the context
+      object mapped over the path. This method is attached to a Handlebars
+      helper and to Meteor to call from JavaScript directly. For example, given
+      a page named &quot;postShow&quot; you will get a Handlebars helper {{postShowPath}}
+      and Meteor.postShowPath({});
+
+      @method pathWithContext
+      @param [context] {Object} An optional context object to use for
+      interpolation.
+
+      @example
+          &#x2F;&#x2F; given a page with a path of &quot;&#x2F;posts&#x2F;:_id&#x2F;edit&quot;
+          var path = page.pathWithContext({ _id: 123 });
+          &#x2F;&#x2F; &gt; &#x2F;posts&#x2F;123&#x2F;edit
+    *&#x2F;
+    pathWithContext: function (context) {
+      var self = this,
+          route = self._route,
+          path = self.path,
+          parts;
+          
+      &#x2F;* get an array of keys from the path to replace with context values.
+      &#x2F;* XXX Right now this comes from page-js. Remove dependency. 
+       *&#x2F;
+      parts = route.regexp.exec(route.path).slice(1);
+
+      context = context || {};
+
+      var replacePathPartWithContextValue = function (part) {
+        var re = new RegExp(part, &quot;g&quot;),
+            prop = part.replace(&quot;:&quot;, &quot;&quot;),
+            val;
+
+        if (val = context[prop])
+          path = path.replace(re, val);
+        else
+          path = path.replace(re, &quot;&quot;);
+      };
+
+      _.each(parts, replacePathPartWithContextValue);
+
+      return path;
+    },
+
+    &#x2F;**
+      Run the page with a PageRouter.PageInvocation. Runs the page&#x27;s before
+      callbacks and set&#x27;s the invocation&#x27;s default layout, template and nav.
+      Returns the resulting mutated invocation.
+    *&#x2F;
+    run: function (invocation) {
       var invocation,
           callbacks = this._beforeCallbacks,
           template,
           nav,
           layout;
 
-      invocation = new PageInvocation(this.router, this, context);
 
       for (var i = 0; i &lt; callbacks.length; i++) {
-        if (invocation.stopped) break;
+        if (invocation.isDone()) break;
         callbacks[i].call(invocation);
       }
 
@@ -355,17 +758,45 @@
     }
   };
 
-  var PageInvocation = function (router, page, context) {
+  &#x2F;**
+    Created each time the url path changes and a page is run. The PageInvocation
+    allows before filters to dynamically set the template, layout and nav, and
+    provides methods for redirecting, stopping execution of the before filters and
+    getting and setting page variables that will be cleaned up when a new page
+    is run.
+
+    Instances are created automatically by the PageRouter when a path change
+    causes the router&#x27;s run method to be called. The PageInvocation instance
+    is the value of &#x60;this&#x60; in all before filters.
+
+    @class PageRouter.PageInvocation
+    @constructor
+    @param router {PageRouter} A page router instance.
+    @param page {PageRouter.Page} A page instance.
+    @param [context] {Object} An optional context object.
+  *&#x2F;
+
+  PageRouter.PageInvocation = function (router, page, context) {
     this.context = context;
     this.params = context.params || {};
-    this.router = router;
+    this._router = router;
     this.page = page;
-    this.stopped = false;
+    this._stopped = false;
+    this._done = false;
+    this._dictionary = {};
   };
 
-  PageInvocation.prototype = {
-    constructor: PageInvocation,
+  PageRouter.PageInvocation.prototype = {
+    constructor: PageRouter.PageInvocation,
 
+    &#x2F;**
+      Gets or sets the invocation&#x27;s layout template name.
+
+      @method layout
+      @param [value] {String} An optional layout template name.
+      @returns {String} If no value provided, returns the invocation&#x27;s layout
+      template name.
+    *&#x2F;
     layout: function (value) {
       if (typeof value !== &#x27;undefined&#x27;)
         this._layout = value;
@@ -373,6 +804,14 @@
         return this._layout;
     },
 
+    &#x2F;**
+      Gets or sets the invocation&#x27;s template name.
+
+      @method template
+      @param [value] {String} An optional template name.
+      @returns {String} If no value provided, returns the invocation&#x27;s
+      template name.
+    *&#x2F;
     template: function (value) {
       if (typeof value !== &#x27;undefined&#x27;)
         this._template = value;
@@ -380,6 +819,14 @@
         return this._template;
     },
 
+    &#x2F;**
+      Gets or sets the invocation&#x27;s nav key.
+
+      @method template
+      @param [value] {String} An optional nav key.
+      @returns {String} If no value provided, returns the invocation&#x27;s
+      nav key.
+    *&#x2F;
     nav: function (value) {
       if (typeof value !== &#x27;undefined&#x27;)
         this._nav = value;
@@ -387,28 +834,186 @@
         return this._nav;
     },
 
-    redirect: function (path, options) {
+    &#x2F;**
+      Stops the current page and redirects to a new path.
+
+      @method redirect
+      @param path {String} The path to redirect to.
+      @param [state] {Object} An optional state object to pass along.
+      @example
+          &#x2F;&#x2F; before filter
+          function filter () {
+            this.redirect(Meteor.postIndexPath());
+          }
+    *&#x2F;
+    redirect: function (path, state) {
       this.stop();
-      this._router.go(path, options);
+      this._router.go(path, state);
     },
 
+    &#x2F;**
+      Stops the current page run. Also stops pushState from being called. Call
+      this to completely stop. No rendering, no more filters.
+
+      @method stop
+    *&#x2F;
     stop: function () {
-      this.stopped = true;
+      this._stopped = true;
       this.context.stop();
+      this.done();
+    },
+
+    &#x2F;**
+      Returns true if the invocation has been stopped.
+
+      @method isStopped
+      @returns {Boolean} True if the stop() method has been called.
+    *&#x2F;
+    isStopped: function () {
+      return !!this._stopped;
+    },
+
+    &#x2F;**
+      Don&#x27;t run any additional before filters.
+
+      @method done
+      @example
+          &#x2F;&#x2F; inside a before filter
+          function filter () {
+            if (Meteor.loggingIn()) {
+              this.template(&quot;loggingIn&quot;);
+              this.done();
+            }
+          }
+    *&#x2F;
+    done: function () {
+      this._done = true;
+    },
+
+    &#x2F;**
+      Returns true if the invocation has been marked as done.
+
+      @method isDone
+      @returns {Boolean} True if the done() method has been called.
+    *&#x2F;
+    isDone: function () {
+      return !!this._done;
+    },
+
+    &#x2F;**
+      Set a page variable that can be accessed for the current invocation from
+      handlebars or downstream before filters. These will be cleared when a new
+      page is run (i.e. the url path changes). These values are accessible
+      using the &#x60;page&#x60; Handlebars helper.
+
+      @method set
+      @param key {String} The key. Example: &quot;post&quot;.
+      @param value {Any} Any value.
+      @example
+          &#x2F;&#x2F; inside before filter
+          function filter () {
+            this.set(&quot;post&quot;, { _id: 1234 });
+          }
+    *&#x2F;
+    set: function (key, value) {
+      this._dictionary[key] = value;
+    },
+
+    &#x2F;**
+      Gets a current invocation value.
+
+      @method get
+      @param key {String} The key.
+      @returns {Any} The value associated with the key.
+      @example
+          &#x2F;&#x2F; inside before filter
+          function filter () {
+            var post = this.get(&quot;post&quot;);
+          }
+    *&#x2F;
+    get: function (key) {
+      return this._dictionary[key];
+    },
+
+    &#x2F;**
+      Returns the invocation&#x27;s dictionary. This is what is put into Session
+      before the page is rendered.
+
+      @method toObject
+      @returns {Object} The invocation&#x27;s dictionary.
+    *&#x2F;
+    toObject: function () {
+      return this._dictionary;
     }
   };
 
-  _.extend(Meteor, {
-    pages: function (pages) {
-      return new PageRouter().pages(pages);
+  &#x2F;**
+    The main Meteor API methods.
+    
+    @class MeteorExtensions
+    @extensionfor Meteor
+  *&#x2F;
+  var MeteorExtensions = {
+    &#x2F;**
+      Convenience method to create a new PageRouter instance and call the
+      pages method on it to create a bunch of pages at once.
+
+      @example
+          Meteor.pages({
+           &quot;&#x2F;posts&quot;: &quot;postIndex&quot;,
+
+           &quot;&#x2F;posts&#x2F;:_id&quot;: {
+              to: &quot;templateName&quot;,
+              layout: &quot;layoutName&quot;,
+              nav: &quot;nav key&quot;,
+              before: [ before callbacks ],
+              as: &quot;path helpers name&quot;
+           },
+
+           logout: function () {
+           }
+          }, {
+            &#x2F;&#x2F; optional options to pass to PageRouter constructor.
+            autoRender: false
+          });
+
+
+      @method Meteor.pages
+      @param pages {Object} An object of paths to page options.
+      @param [options] {Object} Optional options to pass to the PageRouter
+      constructor
+      @return {PageRouter} A new PageRouter instance.
+    *&#x2F;
+    pages: function (pages, options) {
+      return new PageRouter(options).pages(pages);
     },
 
+    &#x2F;**
+      The {{#crossLink &quot;PageRouter&quot;}}{{&#x2F;crossLink}} class.
+
+      @attribute Meteor.PageRouter
+    *&#x2F;
     PageRouter: PageRouter,
 
+    &#x2F;**
+      Navigate to the given path with an optional state object to pass along.
+      This method proxies to the underlying pushState handler. We&#x27;re currently
+      using page-js.
+
+      @example
+          Meteor.go(Meteor.postShowPath({_id: 1234}), { flash: &quot;&quot; });
+
+      @method Meteor.go
+      @param path {String} The path to navigate to. Example: &quot;&#x2F;posts&#x2F;1234&quot;.
+      @param [state] {Object} An optional state object.
+    *&#x2F;
     go: function (path, state) {
       page(path, state);
     }
-  });
+  };
+
+  _.extend(Meteor, MeteorExtensions);
+
 }());
 
     </pre>
