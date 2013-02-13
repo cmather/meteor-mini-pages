@@ -19,5 +19,6 @@ Package.on_test(function (api) {
   api.use('mini-pages', ['client', 'server']);
   api.use('test-helpers', ['client', 'server']);
   api.use('tinytest', ['client', 'server']);
-  api.add_files('tests/client_test.js', 'client');
+
+  api.add_files(['tests/test_templates.html', 'tests/client_tests.js'], 'client');
 });
