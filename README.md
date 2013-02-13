@@ -70,7 +70,7 @@ if (Meteor.isClient) {
 
 ## Before Callbacks
 
-Before callbacks let you set page variables, and dynamically change the page's layout, nav key or template. Before callbacks are reactive. This means that if they rely on a reactive data source and that data source changes, the callbacks will be run again.
+Before callbacks let you set page variables, and dynamically change the page's layout, nav key or template. Before callbacks are reactive. This means that if they rely on a reactive data source and that data changes, the callbacks will be run again.
 
 ```javascript
 function loggingIn () {
