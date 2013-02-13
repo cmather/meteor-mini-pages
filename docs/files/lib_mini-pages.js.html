@@ -19,7 +19,7 @@
             
         </div>
         <div class="yui3-u-1-4 version">
-            <em>API Docs for: 0.2.3</em>
+            <em>API Docs for: 0.3.0</em>
         </div>
     </div>
     <div id="bd" class="yui3-g">
@@ -94,14 +94,16 @@
     <pre class="code prettyprint linenums">
 (function () {
 
+  var pagejs = page;
+
   &#x2F;* modify page-js to not push a route if the context is stopped *&#x2F;
-  page.Context.prototype.save = function () {
+  pagejs.Context.prototype.save = function () {
     if (!this.stopped)
       history.replaceState(this.state, this.title, this.canonicalPath);
   };
 
   &#x2F;* Provide a stop() method in a page-js Context instance *&#x2F;
-  page.Context.prototype.stop = function () {
+  pagejs.Context.prototype.stop = function () {
     this.stopped = true;
     this.unhandled = true;
   };
@@ -142,8 +144,8 @@
   }
 
   &#x2F;* Strong check if original is undefined use a defualt value *&#x2F;
-  function defaultValue (original, value) {
-    return typeof original === &#x27;undefined&#x27; ? value : original;
+  function defaultValue (original, defaultValue) {
+    return typeof original === &#x27;undefined&#x27; ? defaultValue : original;
   }
 
   &#x2F;* Coerces value into an array even if the value is already an array,
@@ -173,7 +175,7 @@
 
   &#x2F;* if template not defined in Template show a warning *&#x2F;
   function warnIfTemplateNotFound (name) {
-    if (_.isUndefined(name))
+    if (name === false || _.isUndefined(name))
       return;
     else if (!Template[name])
       warn(&quot;A template named &#x27;&quot;, String(name), &quot;&#x27; hasn&#x27;t been defined yet.&quot;);
@@ -209,7 +211,7 @@
       defaults: {
         layout: &quot;layout&quot;
       }
-    }, options);
+    }, options || {});
 
     this._currentPath = null;
     this.defaults = options.defaults;
@@ -287,7 +289,7 @@
       @param [state] {Object} A state object to pass along.
     *&#x2F;
     go: function (path, state) {
-      page(path, state);
+      pagejs(path, state);
       return this;
     },
 
@@ -299,8 +301,11 @@
       @chainable
     *&#x2F;
     autoStart: function () {
-      Meteor.startup(_.bind(this.start, this));
-      return this;
+      var self = this;
+      Meteor.setTimeout(function () {
+        Meteor.startup(_.bind(self.start, self));
+      });
+      return self;
     },
 
     &#x2F;**
@@ -313,8 +318,21 @@
       @chainable
     *&#x2F;
     start: function () {
-      page();
+      if (!this._started) {
+        pagejs();
+        this._started = true;
+      }
       return this;
+    },
+
+    &#x2F;**
+      Returns true of the start() method has been called
+
+      @method isStarted
+      @return {Boolean} True if the start() method has been called
+    *&#x2F;
+    isStarted: function () {
+      return !!this._started;
     },
 
     &#x2F;**
@@ -374,7 +392,19 @@
         });
       };
 
+      router._isRendered = true;
       return Spark.isolate(page);
+    },
+
+    &#x2F;**
+      Returns true of the render() method has been called at least once. Does
+      not mean that anything has been attached to the dom.
+
+      @method isRendered
+      @return {Boolean} True of the render() method has been called.
+    *&#x2F;
+    isRendered: function () {
+      return !!this._isRendered;
     },
 
     &#x2F;**
@@ -389,8 +419,11 @@
       @param [context] {Object} An optional context object.
     *&#x2F;
     run: function (path, page, context) {
-      if (path !== this._currentPath)
+      if (path !== this._currentPath) {
+        this._currentPath = path;
+        this._currentPage = page;
         this._runWithInvocation(page, context);
+      }
       return this;
     },
 
@@ -424,6 +457,15 @@
           self.invocation(invocation.toObject());
         }
       });
+    },
+
+    reset: function () {
+      this._currentPath = null;
+      this.layout(null);
+      this.template(null);
+      this.nav(null);
+      this.invocation(null);
+      return this;
     },
 
     &#x2F;**
@@ -575,6 +617,8 @@
     self.path = path;
     self._beforeCallbacks = [];
 
+    options = options || {};
+
     if (_.isFunction(options)) {
       options = { before: options };
     }
@@ -590,18 +634,33 @@
     &#x2F;* default to the template name for path helpers *&#x2F;
     self.as( options.as ? options.as : options.to );
 
-    var onPageRoute = function (context, next) {
-      self.router.run(context.path, self, context);
-    };
-
     &#x2F;&#x2F; XXX page dependency hack. should be removed.
     self._route = new page.Route(self.path);
 
-    page(path, onPageRoute);
+    self._register();
   };
 
   PageRouter.Page.prototype = {
     constructor: PageRouter.Page,
+
+    &#x2F;**
+      Registers the page with the underlying pushState handler. We&#x27;re using
+      page-js.
+
+      @method _register
+      @private
+    *&#x2F;
+    _register: function () {
+      var self = this;
+
+      var onPageRoute = function (context, next) {
+        self.router.run(context.path, self, context);
+      };
+
+      pagejs(self.path, onPageRoute);
+
+      return self;
+    },
 
     &#x2F;**
       Set a default template name for the page.
@@ -745,14 +804,16 @@
 
       for (var i = 0; i &lt; callbacks.length; i++) {
         if (invocation.isDone()) break;
-        callbacks[i].call(invocation);
+        &#x2F;&#x2F; XXX Pass invocation as first parameter for now so last version
+        &#x2F;&#x2F; doesn&#x27;t break miserably for people. Remove eventually.
+        callbacks[i].call(invocation, invocation);
       }
 
-      invocation.layout(defaultValue(invocation.layout(), this.defaultLayout));
+      invocation.layout(defaultValue(invocation.layout(), this.defaultLayout || null));
       invocation.template(
-        defaultValue(invocation.template(), this.defaultTemplate)
+        defaultValue(invocation.template(), this.defaultTemplate || null)
       );
-      invocation.nav(defaultValue(invocation.nav(), this.defaultNav));
+      invocation.nav(defaultValue(invocation.nav(), this.defaultNav || null));
 
       return invocation;
     }
@@ -777,6 +838,11 @@
   *&#x2F;
 
   PageRouter.PageInvocation = function (router, page, context) {
+    if (_.isUndefined(context))
+      throw new Error(
+        &quot;PageInvocation requires a context object with a stop() method and a params attribute&quot;
+      );
+
     this.context = context;
     this.params = context.params || {};
     this._router = router;
@@ -788,6 +854,30 @@
 
   PageRouter.PageInvocation.prototype = {
     constructor: PageRouter.PageInvocation,
+
+    &#x2F;**
+      The context object from the page-js event.
+
+      @attribute context
+      @type {Object}
+    *&#x2F;
+    context: null,
+
+    &#x2F;**
+      The params from the url path.
+
+      @attribute params
+      @type {Object}
+    *&#x2F;
+    params: null,
+
+    &#x2F;**
+      The invocation&#x27;s PageRouter.Page instance.
+
+      @attribute page
+      @type {PageRouter.Page}
+    *&#x2F;
+    page: null,
 
     &#x2F;**
       Gets or sets the invocation&#x27;s layout template name.
@@ -1008,7 +1098,7 @@
       @param [state] {Object} An optional state object.
     *&#x2F;
     go: function (path, state) {
-      page(path, state);
+      pagejs(path, state);
     }
   };
 

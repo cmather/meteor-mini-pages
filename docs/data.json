@@ -2,7 +2,7 @@
     "project": {
         "name": "mini-pages",
         "description": "A simple client-side router for Meteor",
-        "version": "0.2.3",
+        "version": "0.3.0",
         "url": "https://github.com/cmather/meteor-mini-pages.git",
         "logo": false
     },
@@ -31,7 +31,7 @@
             "plugin_for": [],
             "extension_for": [],
             "file": "lib/mini-pages.js",
-            "line": 88,
+            "line": 90,
             "description": "The main mini-pages class. Manages creating pages, rendering and \nresponding to url path changes. You can only create one PageRouter instance.",
             "is_constructor": 1,
             "params": [
@@ -72,7 +72,7 @@
             "plugin_for": [],
             "extension_for": [],
             "file": "lib/mini-pages.js",
-            "line": 445,
+            "line": 487,
             "description": "Controller and container class for a page route. The constructor function\nregisters the page with the underlying pushState handler. For now, we are\nusing page-js to do this. You shouldn't create Page instances directly.\nInstead, let the PageRouter manage this for you.",
             "example": [
                 "\n    new PageRouter.Page(router, \"/posts/:_id\", {\n        to: \"templateName\",\n        as: \"pathHelper\",\n        layout: \"layoutTemplateName\",\n        nav: \"navKey\",\n        before: [firstFilter, secondFilter]\n    });"
@@ -138,7 +138,7 @@
             "plugin_for": [],
             "extension_for": [],
             "file": "lib/mini-pages.js",
-            "line": 667,
+            "line": 728,
             "description": "Created each time the url path changes and a page is run. The PageInvocation\nallows before filters to dynamically set the template, layout and nav, and\nprovides methods for redirecting, stopping execution of the before filters and\ngetting and setting page variables that will be cleaned up when a new page\nis run.\n\nInstances are created automatically by the PageRouter when a path change\ncauses the router's run method to be called. The PageInvocation instance\nis the value of `this` in all before filters.",
             "is_constructor": 1,
             "params": [
@@ -171,14 +171,14 @@
                 "Meteor"
             ],
             "file": "lib/mini-pages.js",
-            "line": 856,
+            "line": 946,
             "description": "The main Meteor API methods."
         }
     },
     "classitems": [
         {
             "file": "lib/mini-pages.js",
-            "line": 130,
+            "line": 132,
             "description": "Create a bunch of pages at once.",
             "example": [
                 "\n    var router = new Meteor.PageRouter({});\n    router.pages({\n     \"/posts/:_id\": {\n        to: \"templateName\",\n        layout: \"layoutName\",\n        nav: \"nav key\",\n        before: [ before callbacks ],\n        as: \"path helpers name\"\n     }\n    });"
@@ -197,7 +197,7 @@
         },
         {
             "file": "lib/mini-pages.js",
-            "line": 159,
+            "line": 161,
             "description": "Create a new {{#crossLink \"PageRouter.Page\"}}{{/crossLink}}\nand return it.",
             "example": [
                 "\n    // with options\n    var router = new Meteor.PageRouter({});\n    router.match(\"/posts/:_id\", { to: \"templateName\" };\n\n    // no options\n    var router = new Meteor.PageRouter({});\n    router.match(\"/posts/:_id\").to(\"templateName\");"
@@ -225,7 +225,7 @@
         },
         {
             "file": "lib/mini-pages.js",
-            "line": 183,
+            "line": 185,
             "description": "Navigate to a given path.",
             "itemtype": "method",
             "name": "go",
@@ -250,7 +250,7 @@
         },
         {
             "file": "lib/mini-pages.js",
-            "line": 200,
+            "line": 202,
             "description": "Automatically start the router by adding a callback to Meteor.startup.\nThe router is auto started by default.",
             "itemtype": "method",
             "name": "autoStart",
@@ -259,7 +259,7 @@
         },
         {
             "file": "lib/mini-pages.js",
-            "line": 212,
+            "line": 217,
             "description": "Start listening for pushState events from the browser and responding\nto url changes. Call this to manually start listening. If you call\nautoStart() this will automatically be called from within a Meteor.startup\ncallback. You usually shouldn't need to call this method.",
             "itemtype": "method",
             "name": "start",
@@ -268,7 +268,19 @@
         },
         {
             "file": "lib/mini-pages.js",
-            "line": 226,
+            "line": 234,
+            "description": "Returns true of the start() method has been called",
+            "itemtype": "method",
+            "name": "isStarted",
+            "return": {
+                "description": "True if the start() method has been called",
+                "type": "Boolean"
+            },
+            "class": "PageRouter"
+        },
+        {
+            "file": "lib/mini-pages.js",
+            "line": 244,
             "description": "Automatically render the router to the document.body. By default the\nrouter will use autoRender(). If you instead want to render the router's\npages in a particular part of the DOM you can call render() instead and\nattach the document fragment manually. For example, the Handlebars helper\n{{renderPages}} does this.",
             "itemtype": "method",
             "name": "autoRender",
@@ -276,7 +288,7 @@
         },
         {
             "file": "lib/mini-pages.js",
-            "line": 246,
+            "line": 264,
             "description": "Creates two isolated regions. One for the layout and one for the template.\nUses Spark's native reactivity to re-render the layout or template if \nthe router's current layout or template changes.",
             "itemtype": "method",
             "name": "render",
@@ -288,7 +300,19 @@
         },
         {
             "file": "lib/mini-pages.js",
-            "line": 286,
+            "line": 305,
+            "description": "Returns true of the render() method has been called at least once. Does\nnot mean that anything has been attached to the dom.",
+            "itemtype": "method",
+            "name": "isRendered",
+            "return": {
+                "description": "True of the render() method has been called.",
+                "type": "Boolean"
+            },
+            "class": "PageRouter"
+        },
+        {
+            "file": "lib/mini-pages.js",
+            "line": 316,
             "description": "If the path is different from the current path, creates a new\n{{#crossLink \"PageRouter.PageInvocation\"}}{{/crossLink}} and runs\nthe page with the new invocation.",
             "itemtype": "method",
             "name": "run",
@@ -315,7 +339,7 @@
         },
         {
             "file": "lib/mini-pages.js",
-            "line": 303,
+            "line": 336,
             "description": "Creates a new {{#crossLink \"PageRouter.PageInvocation\"}}{{/crossLink}}\nand runs the page. Then set's the router's layout, template, nav and\ninvocation object (the object you get when you call {{page.someprop}} in\nyour html.",
             "itemtype": "method",
             "name": "_runWithInvocation",
@@ -338,7 +362,7 @@
         },
         {
             "file": "lib/mini-pages.js",
-            "line": 335,
+            "line": 377,
             "description": "Get or set the current invocation object. This is the object that is\navailable in your template html by using the page handlebars helper like\nthis: {{page.someProperty}}. The object gets its values from a before\nfilter calling `this.set(\"key\", \"value\")`. The value is stored in Session\nso that it's reactive and survives hot code pushes.",
             "itemtype": "method",
             "name": "invocation",
@@ -358,7 +382,7 @@
         },
         {
             "file": "lib/mini-pages.js",
-            "line": 355,
+            "line": 397,
             "description": "Reactively get or set the current layout.",
             "itemtype": "method",
             "name": "layout",
@@ -378,7 +402,7 @@
         },
         {
             "file": "lib/mini-pages.js",
-            "line": 370,
+            "line": 412,
             "description": "Reactively test the current layout name for equality with the passed\nvalue.",
             "itemtype": "method",
             "name": "layoutEquals",
@@ -397,7 +421,7 @@
         },
         {
             "file": "lib/mini-pages.js",
-            "line": 382,
+            "line": 424,
             "description": "Reactively get or set the current template.",
             "itemtype": "method",
             "name": "template",
@@ -416,7 +440,7 @@
         },
         {
             "file": "lib/mini-pages.js",
-            "line": 396,
+            "line": 438,
             "description": "Reactively test the current template name for equality with the passed\nvalue.",
             "itemtype": "method",
             "name": "templateEquals",
@@ -435,7 +459,7 @@
         },
         {
             "file": "lib/mini-pages.js",
-            "line": 408,
+            "line": 450,
             "description": "Reactively get or set the current nav key.",
             "itemtype": "method",
             "name": "nav",
@@ -454,7 +478,7 @@
         },
         {
             "file": "lib/mini-pages.js",
-            "line": 422,
+            "line": 464,
             "description": "Reactively test the current nav key for equality with the passed\nvalue.",
             "itemtype": "method",
             "name": "navEquals",
@@ -473,7 +497,7 @@
         },
         {
             "file": "lib/mini-pages.js",
-            "line": 434,
+            "line": 476,
             "description": "Returns the router's current url path.",
             "itemtype": "method",
             "name": "path",
@@ -485,7 +509,17 @@
         },
         {
             "file": "lib/mini-pages.js",
-            "line": 512,
+            "line": 552,
+            "description": "Registers the page with the underlying pushState handler. We're using\npage-js.",
+            "itemtype": "method",
+            "name": "_register",
+            "access": "private",
+            "tagname": "",
+            "class": "PageRouter.Page"
+        },
+        {
+            "file": "lib/mini-pages.js",
+            "line": 571,
             "description": "Set a default template name for the page.",
             "itemtype": "method",
             "name": "to",
@@ -501,7 +535,7 @@
         },
         {
             "file": "lib/mini-pages.js",
-            "line": 525,
+            "line": 584,
             "description": "Set the name of the page. Primarily used in path helpers.",
             "itemtype": "method",
             "name": "as",
@@ -520,7 +554,7 @@
         },
         {
             "file": "lib/mini-pages.js",
-            "line": 548,
+            "line": 607,
             "description": "Set the default nav key for this page.",
             "itemtype": "method",
             "name": "nav",
@@ -539,7 +573,7 @@
         },
         {
             "file": "lib/mini-pages.js",
-            "line": 563,
+            "line": 622,
             "description": "Set the default layout for this page.",
             "itemtype": "method",
             "name": "layout",
@@ -558,7 +592,7 @@
         },
         {
             "file": "lib/mini-pages.js",
-            "line": 579,
+            "line": 638,
             "description": "A function or array of functions to call before rendering the page. The\nbefore callbacks will be called with `this` set to a\n{{#crossLink PageRouter.PageInvocation}}{{/crossLink}} instance.",
             "itemtype": "method",
             "name": "before",
@@ -574,7 +608,7 @@
         },
         {
             "file": "lib/mini-pages.js",
-            "line": 594,
+            "line": 653,
             "description": "Given a context object, returns a url path with the values of the context\nobject mapped over the path. This method is attached to a Handlebars\nhelper and to Meteor to call from JavaScript directly. For example, given\na page named \"postShow\" you will get a Handlebars helper {{postShowPath}}\nand Meteor.postShowPath({});",
             "itemtype": "method",
             "name": "pathWithContext",
@@ -593,13 +627,40 @@
         },
         {
             "file": "lib/mini-pages.js",
-            "line": 639,
+            "line": 698,
             "description": "Run the page with a PageRouter.PageInvocation. Runs the page's before\ncallbacks and set's the invocation's default layout, template and nav.\nReturns the resulting mutated invocation.",
             "class": "PageRouter.Page"
         },
         {
             "file": "lib/mini-pages.js",
-            "line": 698,
+            "line": 764,
+            "description": "The context object from the page-js event.",
+            "itemtype": "attribute",
+            "name": "context",
+            "type": "{Object}",
+            "class": "PageRouter.PageInvocation"
+        },
+        {
+            "file": "lib/mini-pages.js",
+            "line": 772,
+            "description": "The params from the url path.",
+            "itemtype": "attribute",
+            "name": "params",
+            "type": "{Object}",
+            "class": "PageRouter.PageInvocation"
+        },
+        {
+            "file": "lib/mini-pages.js",
+            "line": 780,
+            "description": "The invocation's PageRouter.Page instance.",
+            "itemtype": "attribute",
+            "name": "page",
+            "type": "{PageRouter.Page}",
+            "class": "PageRouter.PageInvocation"
+        },
+        {
+            "file": "lib/mini-pages.js",
+            "line": 788,
             "description": "Gets or sets the invocation's layout template name.",
             "itemtype": "method",
             "name": "layout",
@@ -619,7 +680,7 @@
         },
         {
             "file": "lib/mini-pages.js",
-            "line": 713,
+            "line": 803,
             "description": "Gets or sets the invocation's template name.",
             "itemtype": "method",
             "name": "template",
@@ -639,7 +700,7 @@
         },
         {
             "file": "lib/mini-pages.js",
-            "line": 728,
+            "line": 818,
             "description": "Gets or sets the invocation's nav key.",
             "itemtype": "method",
             "name": "template",
@@ -659,7 +720,7 @@
         },
         {
             "file": "lib/mini-pages.js",
-            "line": 743,
+            "line": 833,
             "description": "Stops the current page and redirects to a new path.",
             "itemtype": "method",
             "name": "redirect",
@@ -683,7 +744,7 @@
         },
         {
             "file": "lib/mini-pages.js",
-            "line": 760,
+            "line": 850,
             "description": "Stops the current page run. Also stops pushState from being called. Call\nthis to completely stop. No rendering, no more filters.",
             "itemtype": "method",
             "name": "stop",
@@ -691,7 +752,7 @@
         },
         {
             "file": "lib/mini-pages.js",
-            "line": 772,
+            "line": 862,
             "description": "Returns true if the invocation has been stopped.",
             "itemtype": "method",
             "name": "isStopped",
@@ -703,7 +764,7 @@
         },
         {
             "file": "lib/mini-pages.js",
-            "line": 782,
+            "line": 872,
             "description": "Don't run any additional before filters.",
             "itemtype": "method",
             "name": "done",
@@ -714,7 +775,7 @@
         },
         {
             "file": "lib/mini-pages.js",
-            "line": 799,
+            "line": 889,
             "description": "Returns true if the invocation has been marked as done.",
             "itemtype": "method",
             "name": "isDone",
@@ -726,7 +787,7 @@
         },
         {
             "file": "lib/mini-pages.js",
-            "line": 809,
+            "line": 899,
             "description": "Set a page variable that can be accessed for the current invocation from\nhandlebars or downstream before filters. These will be cleared when a new\npage is run (i.e. the url path changes). These values are accessible\nusing the `page` Handlebars helper.",
             "itemtype": "method",
             "name": "set",
@@ -749,7 +810,7 @@
         },
         {
             "file": "lib/mini-pages.js",
-            "line": 828,
+            "line": 918,
             "description": "Gets a current invocation value.",
             "itemtype": "method",
             "name": "get",
@@ -771,7 +832,7 @@
         },
         {
             "file": "lib/mini-pages.js",
-            "line": 844,
+            "line": 934,
             "description": "Returns the invocation's dictionary. This is what is put into Session\nbefore the page is rendered.",
             "itemtype": "method",
             "name": "toObject",
@@ -783,7 +844,7 @@
         },
         {
             "file": "lib/mini-pages.js",
-            "line": 863,
+            "line": 953,
             "description": "Convenience method to create a new PageRouter instance and call the\npages method on it to create a bunch of pages at once.",
             "example": [
                 "\n    Meteor.pages({\n     \"/posts\": \"postIndex\",\n\n     \"/posts/:_id\": {\n        to: \"templateName\",\n        layout: \"layoutName\",\n        nav: \"nav key\",\n        before: [ before callbacks ],\n        as: \"path helpers name\"\n     },\n\n     logout: function () {\n     }\n    }, {\n      // optional options to pass to PageRouter constructor.\n      autoRender: false\n    });"
@@ -811,7 +872,7 @@
         },
         {
             "file": "lib/mini-pages.js",
-            "line": 897,
+            "line": 987,
             "description": "The {{#crossLink \"PageRouter\"}}{{/crossLink}} class.",
             "itemtype": "attribute",
             "name": "Meteor.PageRouter",
@@ -819,7 +880,7 @@
         },
         {
             "file": "lib/mini-pages.js",
-            "line": 904,
+            "line": 994,
             "description": "Navigate to the given path with an optional state object to pass along.\nThis method proxies to the underlying pushState handler. We're currently\nusing page-js.",
             "example": [
                 "\n    Meteor.go(Meteor.postShowPath({_id: 1234}), { flash: \"\" });"
@@ -845,43 +906,43 @@
     "warnings": [
         {
             "message": "replacing incorrect tag: returns with return",
-            "line": " lib/mini-pages.js:382"
+            "line": " lib/mini-pages.js:424"
         },
         {
             "message": "replacing incorrect tag: returns with return",
-            "line": " lib/mini-pages.js:408"
+            "line": " lib/mini-pages.js:450"
         },
         {
             "message": "replacing incorrect tag: returns with return",
-            "line": " lib/mini-pages.js:698"
+            "line": " lib/mini-pages.js:788"
         },
         {
             "message": "replacing incorrect tag: returns with return",
-            "line": " lib/mini-pages.js:713"
+            "line": " lib/mini-pages.js:803"
         },
         {
             "message": "replacing incorrect tag: returns with return",
-            "line": " lib/mini-pages.js:728"
+            "line": " lib/mini-pages.js:818"
         },
         {
             "message": "replacing incorrect tag: returns with return",
-            "line": " lib/mini-pages.js:772"
+            "line": " lib/mini-pages.js:862"
         },
         {
             "message": "replacing incorrect tag: returns with return",
-            "line": " lib/mini-pages.js:799"
+            "line": " lib/mini-pages.js:889"
         },
         {
             "message": "replacing incorrect tag: returns with return",
-            "line": " lib/mini-pages.js:828"
+            "line": " lib/mini-pages.js:918"
         },
         {
             "message": "replacing incorrect tag: returns with return",
-            "line": " lib/mini-pages.js:844"
+            "line": " lib/mini-pages.js:934"
         },
         {
             "message": "Missing item type\nRun the page with a PageRouter.PageInvocation. Runs the page's before\ncallbacks and set's the invocation's default layout, template and nav.\nReturns the resulting mutated invocation.",
-            "line": " lib/mini-pages.js:639"
+            "line": " lib/mini-pages.js:698"
         }
     ]
 }
