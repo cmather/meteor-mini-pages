@@ -74,7 +74,7 @@ Before callbacks let you set page variables, and dynamically change the page's l
 
 ```javascript
 function loggingIn () {
-  if (Meteor.isLoggingIn()) {
+  if (Meteor.loggingIn()) {
     // dynamically set the template
     this.template("loggingIn");
     
