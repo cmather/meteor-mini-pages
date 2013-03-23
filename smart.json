@@ -6,7 +6,9 @@
   "version": "0.3.0",
   "git": "https://github.com/cmather/meteor-mini-pages.git",
   "packages": {
-    "page-js": {
+    "HTML5-History-API": {
+    },
+    "page-js-ie-support": {
     }
   }
 }
