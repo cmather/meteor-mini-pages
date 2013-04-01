@@ -1,0 +1,80 @@
+<head>
+  <title>mini-pages redirect</title>
+</head>
+
+<body>
+</body>
+
+<template name="layout">
+  <div class="navbar">
+    <div class="navbar-inner">
+      <a class="brand" href="{{rootPath}}">mini-pages</a>
+      <ul class="nav">
+        <li class="{{navClassFor 'home'}}"><a href="{{homePath}}">Home</a></li>
+        <li class="{{navClassFor 'dashboard'}}"><a href="{{dashboardPath}}">Dashboard</a></li>
+      </ul>
+      <ul class="nav pull-right">
+        <li><button class="login btn">Login</button></li>
+        <li><button class="logout btn">Logout</button></li>
+      </ul>
+    </div>
+  </div>
+
+  <ul>
+    <li>template: {{pageTemplate}}</li>
+    <li>pageTemplateEquals 'home': {{pageTemplateEquals 'home'}}</li>
+    <li>pageNav: {{pageNav}}</li>
+    <li>pageNavEquals 'dashboard': {{pageNavEquals 'dashboard'}}</li>
+    <li>pageLayout: {{pageLayout}}</li>
+    <li>pageLayoutEquals 'layout': {{pageLayoutEquals 'layout'}}</li>
+    <li>pagePath: {{pagePath}}</li>
+    <li>page: {{page}}</li>
+  </ul>
+
+  <div class="container">
+    <div class="span4">
+      {{> instructions}}
+    </div>
+    <div class="span6">
+      {{{yield}}}
+    </div>
+  </div>
+</template>
+
+<template name="instructions">
+  <dl>
+    <dt>Instructions</dt>
+    <dd>
+        <p>To see reactive redirects in action, try these scenarios:</p>
+        <p>A) Accessing a page when you have satisfied all pre-conditions:
+          <ol>
+            <li>Load this page</li>
+            <li>Click on login</li>
+            <li>Click on dashboard</li>
+            <li><em>You should see the dashboard page and the url should be /dashboard</em></li>
+          </ol>
+        </p>
+        <p>B) Accessing a page before you have satisfied all pre-conditions, and then later the pre-conditions are satisfied (e.g. loading a bookmarked edit resource page before all resources have been loaded and you can verify the user is allowed to edit the resource at that url):
+          <ol>
+            <li>Re-load this page</li>
+            <li>Click on dashboard</li>
+            <li><em>You should see that the page has not changed and the url has not changed</em></li>
+            <li>Click on login</li>
+            <li><em>You should see the dashboard page and the url should be /dashboard</em></li>
+          </ol>
+        </p>
+    </dd>
+  </dl>
+</template>
+
+<template name="home">
+  <h1>Home</h1> 
+
+  <h4>You are not logged in and do not have access to the dashboard.</h4>
+</template>
+
+<template name="dashboard">
+  <h1>Dashboard</h1> 
+
+  <h4>You are logged in and have access to the dashboard now.</h4>
+</template>
