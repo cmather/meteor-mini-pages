@@ -1,4 +1,5 @@
-var decorations = [];
+var decorations = []
+  , pagejs = page;
 
 function resetDecorations () {
   for (var i = 0; i < decorations.length; i++) {
@@ -37,6 +38,26 @@ function withCleanup (fn) {
   };
 }
 
+function newContext(path){
+  path = path || 'http://example.com';
+  return new page.Context(path, {});
+}
+
+function newMockContext(path){
+  path = path || 'http://example.com';
+  var context = new page.Context(path, {});
+  context.save = function() {
+    this.saveCalled = true;
+  }
+  context.restart = function() {
+    this.restartCalled = true;
+  }
+  context.stop = function() {
+    this.stopCalled = true;
+  }
+  return context;
+}
+
 /* don't register anything with pagejs for testing */
 Meteor.PageRouter.Page.prototype._register = function () {};
 
@@ -73,7 +94,7 @@ Tinytest.add('PageRouter.PageInvocation', withCleanup(function (test) {
 
   var router = new Meteor.PageRouter(routerOptions);
   var page = new Meteor.PageRouter.Page(router, '/', function () {});
-  var context = { params: {}, stop: function () {} };
+  var context = newContext();//{ params: {}, stop: function () {}, restart: function () {} };
   var invocation = new Meteor.PageRouter.PageInvocation(router, page, context);
 
   /* constructor signature */
@@ -106,6 +127,11 @@ Tinytest.add('PageRouter.PageInvocation', withCleanup(function (test) {
   test.isTrue(invocation.isDone());
   test.isFalse(goCalled);
   invocation._stopped = false;
+
+  /* restart() method */
+  invocation.restart();
+  test.isFalse(invocation.isStopped());
+  test.isFalse(invocation.isDone());
 
   /* redirect() method */
   var path = "/somepath",
@@ -212,7 +238,16 @@ Tinytest.add('PageRouter.Page', withCleanup(function (test) {
   var res = Meteor.postEditPath(ctx);
   test.equal(res, "/posts/1/edit");
 
-  var ctx = { stop: function () {}, params: [] };
+  var ctx = { 
+    stop: function () {
+      this.stopCalled = true;
+    }, restart: function () {
+      this.restartCalled = true;
+    }, save: function() {
+      this.saveCalled = true;
+    }, 
+    params: [] 
+  };
 
   /* test run with an invocation instance */
   var cb1 = false, cb2 = false, thisArg = null;
@@ -312,14 +347,69 @@ Tinytest.add('PageRouter.Page', withCleanup(function (test) {
   test.isTrue(invocation.isStopped());
 
   Meteor.PageRouter.prototype.go = oldGo;
+
+  /** 
+    check that a previously stopped invocation which is run again 
+    as a result of reactivity updates the page url when none of
+    its before callbacks call stop() or done().
+  **/
+
+  var replaceStateCalled = false,
+      ctx = newContext('/anewpath'),
+      options = {},
+      oldReplaceState = history.replaceState;
+
+  history.replaceState = function () {
+    replaceStateCalled = true;
+  }
+  page = new Meteor.PageRouter.Page(router, path, options);
+  invocation = new Meteor.PageRouter.PageInvocation(router, page, ctx);
+  invocation.stop();
+  page.run(invocation);
+  test.isFalse(invocation.isStopped());
+  test.isTrue(replaceStateCalled);
+
+  history.replaceState = oldReplaceState;
 }));
+
+Tinytest.add("Context", function (test) {
+  var context = new pagejs.Context('/testpath');
+
+  /* check flags after initial construction */
+  test.isFalse(context.stopped);
+  test.isFalse(context.unhandled);
+  
+  /* check flags after stop() */
+  context.stop();
+  test.isTrue(context.stopped);
+  test.isTrue(context.unhandled);
+  
+  /* check flags after restart() */
+  context.restart();
+  test.isFalse(context.stopped);
+  test.isFalse(context.unhandled);
+
+  /* check save() when not stopped */
+  var replaceStateCalled = false,
+      oldReplaceState = history.replaceState;
+
+  history.replaceState = function () {
+    replaceStateCalled = true;
+  }
+  context.save();
+  test.isTrue(replaceStateCalled);
+
+  replaceStateCalled = false;
+  context.stop();
+  context.save();
+  test.isFalse(replaceStateCalled);
+
+  history.replaceState = oldReplaceState;
+});
 
 Tinytest.add("PageRouter", function (test) {
 
-  var mockContext = {
-    stop: function () {},
-    params: {}
-  };
+  var mockContext = newMockContext();
 
   var router = new Meteor.PageRouter({autoRender: false, autoStart: false});
   var homePage = router.match('/').to('home').layout('layout');
