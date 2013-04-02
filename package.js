@@ -9,7 +9,7 @@ Package.on_use(function (api, where) {
     'session',
     'underscore',
     'templating',
-    'page-js'
+    'page-js-ie-support'
   ], 'client');
 
   api.add_files(['lib/mini-pages.js', 'lib/helpers.js'], 'client');

@@ -3,17 +3,9 @@ mini-pages
 
 mini-pages is a simple client side page routing library for Meteor.
 
-Latest Version: **0.3.0**
+Latest Version: **0.3.1**
 
-Previous Version: 0.2.3
-
-## Change Notes
-
-* Before filters now set `this` to the PageInvocation. No parameters are passed to the filter. See the API docs for specifics or the Get Started section for a quick example.
-* Before filters now have `this.set` and `this.get` methods to set variables for a specific page and automatically clear them on a new path.
-* Layouts do not replace the entire body any more. mini-pages uses Spark to only re-render the layout or template if it has changed, even for new paths.
-* Dynamically change layout, template, or nav in a before callback.
-* Stop additional before callbacks from running using the `this.done()` method inside the callback.
+Previous Version: 0.3.0
 
 ## API Docs
 ### http://cmather.github.com/meteor-mini-pages/
@@ -43,7 +35,32 @@ To update an existing project:
 > mrt
 ```
 
-## Get Started
+## Quick Start
+
+```html
+<body>
+  <!-- Nothing needed in body unless router autoRender is false and you manually use renderPages helper --->
+</body>
+
+<template name="layout">
+  {{{yield}}}
+</template>
+
+<template name="postIndex">
+</template>
+
+<template name="postShow">
+</template>
+
+<template name="secret">
+</template>
+
+<template name="notFound">
+</template>
+
+```
+
+## Defining Routes
 
 ```javascript
 if (Meteor.isClient) {
