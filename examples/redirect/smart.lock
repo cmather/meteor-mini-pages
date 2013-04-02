@@ -1,0 +1,24 @@
+{
+  "meteor": {
+    "git": "https://github.com/meteor/meteor.git",
+    "branch": "master",
+    "commit": "f07715dc70de16a7aab84e56ab0c6cbd9c1f9dc6"
+  },
+  "dependencies": {
+    "basePackages": {
+      "mini-pages": {
+        "path": "../.."
+      }
+    },
+    "packages": {
+      "mini-pages": {
+        "path": "../.."
+      },
+      "page-js": {
+        "git": "https://github.com/tmeasday/meteor-page-js.git",
+        "tag": "v1.3.5",
+        "commit": "c652f795a86498aa4609ab637a694710421cb218"
+      }
+    }
+  }
+}

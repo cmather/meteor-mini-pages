@@ -22,10 +22,17 @@ To update an existing project:
 > mrt update mini-pages
 ```
 
-## Run the Example
+## Run the Basic Example
 ```bash
 > git clone https://github.com/cmather/meteor-mini-pages.git mini-pages
 > cd mini-pages/examples/basic
+> mrt
+```
+
+## Run the Redirect Example
+```bash
+> git clone https://github.com/cmather/meteor-mini-pages.git mini-pages
+> cd mini-pages/examples/redirect
 > mrt
 ```
 
