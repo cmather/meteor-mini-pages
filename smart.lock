@@ -14,6 +14,11 @@
       "mini-pages": {
         "path": ""
       },
+      "HTML5-History-API": {
+        "git": "https://github.com/tmeasday/meteor-HTML5-History-API.git",
+        "tag": "v0.1.2",
+        "commit": "72333bfa71ae1ca75243085e83200eef40818088"
+      },
       "page-js-ie-support": {
         "git": "https://github.com/tmeasday/meteor-page-js-ie-support.git",
         "tag": "v1.3.5",
