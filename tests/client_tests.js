@@ -93,7 +93,7 @@ Tinytest.add('PageRouter.PageInvocation', withCleanup(function (test) {
 
   /* constructor signature */
   test.equal(invocation.context, context);
-  // test.equal(invocation.params, context.params);
+  test.equal(invocation.params, context.params);
   test.equal(invocation.page, page);
 
   /* dynamic templates, layouts and nav */
