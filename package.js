@@ -5,6 +5,7 @@ Package.describe({
 Package.on_use(function (api, where) {
   api.use([
     'deps',
+    'startup',
     'session',
     'underscore',
     'templating',
@@ -12,10 +13,16 @@ Package.on_use(function (api, where) {
     'page-js-ie-support'
   ], 'client' );
 
+  api.use('HTML5-History-API', 'client', {weak: true});
+
   api.add_files([
     'lib/mini-pages.js',
     'lib/helpers.js'
   ], 'client');
+
+  if (typeof api.export !== 'undefined') {
+    api.use('webapp', 'server');
+  }
 });
 
 Package.on_test(function (api) {
