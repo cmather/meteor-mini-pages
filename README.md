@@ -1,3 +1,7 @@
+Check out the new iron-router project!
+
+https://github.com/eventedmind/meteor-iron-router
+
 mini-pages
 ===============
 
