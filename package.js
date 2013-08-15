@@ -3,14 +3,18 @@ Package.describe({
 });
 
 Package.on_use(function (api, where) {
-  api.use([
+  var _dependencies = [
     'deps',
     'startup',
     'session',
     'underscore',
     'templating',
     'page-js-ie-support'
-  ], 'client');
+  ];
+  if(api.export)
+    _dependencies.push('handlebars');
+
+  api.use( _dependencies, 'client' );
 
   api.add_files(['lib/mini-pages.js', 'lib/helpers.js'], 'client');
 });
